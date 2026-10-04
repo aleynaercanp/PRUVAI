@@ -297,10 +297,11 @@ export function baslatYonetimPaneli() {
                     }
                 } catch (e) {}
 
-                // 6. "Detayı Gör >" BUTONU (Tıklanınca aşağıdaki detay kutusunu açar)
+                // 6. "Detayı Gör >" BUTONU (Aşağıdaki detay kutusunu açar ve ekranı oraya kaydırır)
                 try {
-                    if ($item("#adminRowDetailBtn")) {
-                        $item("#adminRowDetailBtn").onClick(() => {
+                    const btnDetail = $item("#adminRowDetailBtn");
+                    if (btnDetail) {
+                        btnDetail.onClick(async () => {
                             const mesajIcerik = itemData.message || itemData.mesaj || "Mesaj içeriği bulunamadı.";
                             const gonderen = itemData.fullName || itemData.isim || "Aday";
                             const email = itemData.email || itemData.telefon || "-";
@@ -308,30 +309,68 @@ export function baslatYonetimPaneli() {
                             const subject = itemData.subject || itemData.konu || "Platform Hakkında";
                             const date = $item("#adminRowDate") ? $item("#adminRowDate").text : "-";
 
-                            try {
-                                if ($w("#adminDetailName")) $w("#adminDetailName").text = gonderen;
-                                if ($w("#adminDetailEmail")) $w("#adminDetailEmail").text = email;
-                                if ($w("#adminDetailUserType")) $w("#adminDetailUserType").text = userType;
-                                if ($w("#adminDetailSubject")) $w("#adminDetailSubject").text = subject;
-                                if ($w("#adminDetailDate")) $w("#adminDetailDate").text = date;
-                                if ($w("#adminDetailMessage")) $w("#adminDetailMessage").text = mesajIcerik;
-
-                                if ($w("#adminDetailSection")) {
-                                    $w("#adminDetailSection").expand();
-                                    $w("#adminDetailSection").show();
-                                    $w("#adminDetailSection").scrollTo();
+                            // Güvenli metin atama yardımcısı (farklı ID alternatiflerini dener)
+                            function metinAta(idDizisi, val) {
+                                for (let id of idDizisi) {
+                                    try {
+                                        const el = $w(id);
+                                        if (el && typeof el.text !== 'undefined') {
+                                            el.text = String(val);
+                                            return true;
+                                        }
+                                    } catch (e) {}
                                 }
-                            } catch (detailErr) {
-                                console.warn("Detay gösterim hatası:", detailErr);
+                                return false;
                             }
+
+                            metinAta(["#adminDetailName", "#detayName", "#detailName"], gonderen);
+                            metinAta(["#adminDetailEmail", "#detayEmail", "#detailEmail"], email);
+                            metinAta(["#adminDetailUserType", "#detayUserType", "#detailUserType"], userType);
+                            metinAta(["#adminDetailSubject", "#detaySubject", "#detailSubject"], subject);
+                            metinAta(["#adminDetailDate", "#detayDate", "#detailDate"], date);
+                            metinAta(["#adminDetailMessage", "#detayMessage", "#detailMessage"], mesajIcerik);
+
+                            // Detay panelini bul ve aç
+                            const panelAdaylari = ["#adminDetailSection", "#detailPanel", "#detailSection", "#adminDetailBox", "#boxDetail", "#mesajDetayi"];
+                            let hedefPanel = null;
+
+                            for (let pId of panelAdaylari) {
+                                try {
+                                    const p = $w(pId);
+                                    if (p) {
+                                        if (typeof p.expand === 'function') {
+                                            await p.expand();
+                                        }
+                                        if (typeof p.show === 'function') {
+                                            await p.show();
+                                        }
+                                        hedefPanel = p;
+                                        break;
+                                    }
+                                } catch (e) {}
+                            }
+
+                            // EKRANI OTOMATİK OLARAK AÇILAN MESAJ DETAYINA KAYDIR (SCROLL)
+                            setTimeout(async () => {
+                                try {
+                                    if (hedefPanel && typeof hedefPanel.scrollTo === 'function') {
+                                        await hedefPanel.scrollTo();
+                                    }
+                                } catch (scrollErr) {
+                                    console.warn("Otomatik kaydırma hatası:", scrollErr);
+                                }
+                            }, 120);
+
+                            console.log(`[${gonderen}] Mesaj Detayı açıldı ve ekrana odaklandı.`);
                         });
                     }
                 } catch (e) {}
 
                 // 7. "Sil" BUTONU (Tıklanınca mesajı silip tabloyu ve kartları yeniler)
                 try {
-                    if ($item("#adminRowDeleteBtn")) {
-                        $item("#adminRowDeleteBtn").onClick(async () => {
+                    const btnSil = $item("#adminRowDeleteBtn");
+                    if (btnSil) {
+                        btnSil.onClick(async () => {
                             // Wix CMS'ten sil
                             try {
                                 if (itemData._id) {
@@ -361,14 +400,27 @@ export function baslatYonetimPaneli() {
     }
 
     // Detay panelini kapatma (X) butonu
-    try {
-        if ($w("#adminDetailCloseBtn") && $w("#adminDetailSection")) {
-            $w("#adminDetailCloseBtn").onClick(() => {
-                $w("#adminDetailSection").hide();
-                $w("#adminDetailSection").collapse();
-            });
-        }
-    } catch (e) {}
+    const closeBtnAdaylari = ["#adminDetailCloseBtn", "#detailCloseBtn", "#btnCloseDetail"];
+    for (let cId of closeBtnAdaylari) {
+        try {
+            const btnClose = $w(cId);
+            if (btnClose) {
+                btnClose.onClick(async () => {
+                    const panelAdaylari = ["#adminDetailSection", "#detailPanel", "#detailSection", "#adminDetailBox", "#boxDetail", "#mesajDetayi"];
+                    for (let pId of panelAdaylari) {
+                        try {
+                            const p = $w(pId);
+                            if (p) {
+                                if (typeof p.hide === 'function') await p.hide();
+                                if (typeof p.collapse === 'function') await p.collapse();
+                            }
+                        } catch (e) {}
+                    }
+                });
+                break;
+            }
+        } catch (e) {}
+    }
 
     // DİNAMİK KPI SAYAÇLARI HESAPLAMA (3 RAKAMLARINI GERÇEK SAYILARLA DEĞİŞTİRİR)
     function metrikleriHesapla(liste) {
