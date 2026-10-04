@@ -14,9 +14,9 @@ const BACKEND_URL = "https://pruvai-backend.onrender.com";
 $w.onReady(function () {
     console.log("PRUVAI Sistemi Yükleniyor...");
 
-    // 1. YÖNETİM PANELİ (Sayfada sayaçlar veya tablo varsa doğrudan başlat)
+    // 1. YÖNETİM PANELİ (Sayfada sayaçlar, tablo veya detay paneli varsa doğrudan başlat)
     try {
-        if ($w('#adminTotalMessages') || $w('#adminMessagesRepeater')) {
+        if ($w('#adminTotalMessages') || $w('#adminMessagesRepeater') || $w('#adminMessageDetailContainer') || $w('#adminViewMessageButton')) {
             baslatYonetimPaneli();
         }
     } catch (e) {}
@@ -297,9 +297,14 @@ export function baslatYonetimPaneli() {
                     }
                 } catch (e) {}
 
-                // 6. "Detayı Gör >" BUTONU (Aşağıdaki detay kutusunu açar ve ekranı oraya kaydırır)
+                // 6. "Detayı Gör >" BUTONU (#adminViewMessageButton)
                 try {
-                    const olasiButonlar = ["#adminRowDetailBtn", "#button1", "#button2", "#button3", "#btnDetail", "#detailBtn", "#detayGorBtn", "#detayBtn"];
+                    const olasiButonlar = [
+                        "#adminViewMessageButton", 
+                        "#adminRowDetailBtn", 
+                        "#button1", "#button2", "#button3", "#button4",
+                        "#btnDetail", "#detailBtn", "#detayGorBtn", "#detayBtn"
+                    ];
                     let btnDetail = null;
                     for (let bId of olasiButonlar) {
                         try {
@@ -317,36 +322,55 @@ export function baslatYonetimPaneli() {
                             const email = itemData.email || itemData.telefon || "-";
                             const userType = itemData.userType || itemData.hedef_rol || "Yeni Mezun";
                             const subject = itemData.subject || itemData.konu || "Platform Hakkında";
-                            const date = $item("#adminRowDate") ? $item("#adminRowDate").text : (itemData.tarih ? String(itemData.tarih).slice(0, 10) : "-");
+                            
+                            let tarihMetni = "-";
+                            if (itemData._createdDate) {
+                                tarihMetni = new Date(itemData._createdDate).toLocaleDateString('tr-TR');
+                            } else if (itemData.tarih) {
+                                const parca = String(itemData.tarih).slice(0, 10).split('-');
+                                tarihMetni = parca.length === 3 ? `${parca[2]}.${parca[1]}.${parca[0]}` : String(itemData.tarih).slice(0, 10);
+                            } else if ($item("#adminRowDate") && $item("#adminRowDate").text) {
+                                tarihMetni = $item("#adminRowDate").text;
+                            }
 
-                            // Güvenli metin atama yardımcısı (farklı ID alternatiflerini dener)
+                            // Güvenli metin ve değer atama yardımcısı
                             function metinAta(idDizisi, val) {
                                 for (let id of idDizisi) {
                                     try {
                                         const el = $w(id);
-                                        if (el && typeof el.text !== 'undefined') {
-                                            el.text = String(val);
-                                            return true;
+                                        if (el) {
+                                            if (typeof el.text !== 'undefined') {
+                                                el.text = String(val);
+                                                return true;
+                                            } else if (typeof el.value !== 'undefined') {
+                                                el.value = String(val);
+                                                return true;
+                                            }
                                         }
                                     } catch (e) {}
                                 }
                                 return false;
                             }
 
-                            metinAta(["#adminDetailName", "#detayName", "#detailName", "#textDetailName", "#nameText", "#text14", "#text15"], gonderen);
-                            metinAta(["#adminDetailEmail", "#detayEmail", "#detailEmail", "#textDetailEmail", "#emailText", "#text16", "#text17"], email);
-                            metinAta(["#adminDetailUserType", "#detayUserType", "#detailUserType", "#textDetailUserType", "#roleText", "#text18", "#text19"], userType);
-                            metinAta(["#adminDetailSubject", "#detaySubject", "#detailSubject", "#textDetailSubject", "#subjectText", "#text20", "#text21"], subject);
-                            metinAta(["#adminDetailDate", "#detayDate", "#detailDate", "#textDetailDate", "#dateText", "#text22", "#text23"], date);
-                            metinAta(["#adminDetailMessage", "#detayMessage", "#detailMessage", "#textDetailMessage", "#messageText", "#text24", "#text25", "#textBox1"], mesajIcerik);
+                            // Detay kutusundaki verileri doldur
+                            metinAta(["#adminMessageDetailName", "#adminDetailName", "#detailName", "#messageDetailName", "#textDetailName", "#nameText", "#text14", "#text15", "#text1", "#text2"], gonderen);
+                            metinAta(["#adminMessageDetailEmail", "#adminDetailEmail", "#detailEmail", "#messageDetailEmail", "#textDetailEmail", "#emailText", "#text16", "#text17", "#text3", "#text4"], email);
+                            metinAta(["#adminMessageDetailUserType", "#adminDetailUserType", "#detailUserType", "#messageDetailUserType", "#textDetailUserType", "#roleText", "#text18", "#text19", "#text5", "#text6"], userType);
+                            metinAta(["#adminMessageDetailSubject", "#adminDetailSubject", "#detailSubject", "#messageDetailSubject", "#textDetailSubject", "#subjectText", "#text20", "#text21", "#text7", "#text8"], subject);
+                            metinAta(["#adminMessageDetailDate", "#adminDetailDate", "#detailDate", "#messageDetailDate", "#textDetailDate", "#dateText", "#text22", "#text23", "#text9", "#text10"], tarihMetni);
+                            metinAta(["#adminMessageDetailMessage", "#adminDetailMessage", "#detailMessage", "#messageDetailMessage", "#textDetailMessage", "#messageText", "#adminMessageDetailBody", "#adminMessageDetailContent", "#text24", "#text25", "#textBox1", "#textMessage"], mesajIcerik);
 
-                            // Detay panelini bul ve aç
+                            // Detay panelini (#adminMessageDetailContainer) bul, aç ve göster
                             const panelAdaylari = [
-                                "#adminDetailSection", "#detailPanel", "#detailSection", 
-                                "#adminDetailBox", "#boxDetail", "#mesajDetayi",
+                                "#adminMessageDetailContainer",
+                                "#adminDetailSection", 
+                                "#detailPanel", 
+                                "#detailSection", 
+                                "#adminDetailBox", 
+                                "#boxDetail", 
+                                "#mesajDetayi",
                                 "#box1", "#box2", "#box3", "#box4", "#box5",
-                                "#section1", "#section2", "#section3", "#section4",
-                                "#container1", "#container2", "#container3"
+                                "#section1", "#section2", "#section3"
                             ];
                             let hedefPanel = null;
 
@@ -375,17 +399,17 @@ export function baslatYonetimPaneli() {
                                 } catch (scrollErr) {
                                     console.warn("Otomatik kaydırma hatası:", scrollErr);
                                 }
-                            }, 120);
+                            }, 100);
 
-                            console.log(`[${gonderen}] Mesaj Detayı açıldı ve ekrana odaklandı.`);
+                            console.log(`[${gonderen}] Mesaj Detayı açıldı (#adminMessageDetailContainer).`);
                         });
                     }
                 } catch (e) {}
 
                 // 7. "Sil" BUTONU (Tıklanınca mesajı silip tabloyu ve kartları yeniler)
                 try {
-                    const btnSil = $item("#adminRowDeleteBtn");
-                    if (btnSil) {
+                    const btnSil = $item("#adminRowDeleteBtn") || $item("#adminDeleteBtn") || $item("#btnDelete");
+                    if (btnSil && typeof btnSil.onClick === 'function') {
                         btnSil.onClick(async () => {
                             // Wix CMS'ten sil
                             try {
@@ -416,13 +440,23 @@ export function baslatYonetimPaneli() {
     }
 
     // Detay panelini kapatma (X) butonu
-    const closeBtnAdaylari = ["#adminDetailCloseBtn", "#detailCloseBtn", "#btnCloseDetail"];
+    const closeBtnAdaylari = [
+        "#adminMessageDetailCloseButton",
+        "#adminDetailCloseButton", 
+        "#adminMessageDetailCloseBtn",
+        "#adminDetailCloseBtn", 
+        "#closeDetailBtn", 
+        "#detailCloseBtn", 
+        "#btnCloseDetail",
+        "#adminMessageDetailClose",
+        "#closeBtn"
+    ];
     for (let cId of closeBtnAdaylari) {
         try {
             const btnClose = $w(cId);
-            if (btnClose) {
+            if (btnClose && typeof btnClose.onClick === 'function') {
                 btnClose.onClick(async () => {
-                    const panelAdaylari = ["#adminDetailSection", "#detailPanel", "#detailSection", "#adminDetailBox", "#boxDetail", "#mesajDetayi"];
+                    const panelAdaylari = ["#adminMessageDetailContainer", "#adminDetailSection", "#detailPanel", "#detailSection", "#adminDetailBox", "#boxDetail", "#mesajDetayi"];
                     for (let pId of panelAdaylari) {
                         try {
                             const p = $w(pId);
