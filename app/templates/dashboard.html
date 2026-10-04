@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRUVAI — Yönetim Paneli</title>
+  <meta name="description" content="Web sitesi üzerinden gelen iletişim taleplerini görüntüleyin ve yönetin.">
+
+  <!-- Google Fonts: Montserrat & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --sidebar-bg: #0E2A2B;
+      --sidebar-text: #FFFFFF;
+      --sidebar-muted: #8AA4A3;
+      --brand-teal: #00B8A9;
+      --bg-main: #FFFFFF;
+      --card-bg: #FFFFFF;
+      --border-color: #E2E8F0;
+      --border-darker: #CBD5E1;
+      --table-header-bg: #FFFFFF;
+      --text-dark: #0E2A2B;
+      --text-body: #1E293B;
+      --text-muted: #64748B;
+      --text-light: #94A3B8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-body);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    h1, h2, h3, .brand-font {
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    /* SOL MENÜ / SIDEBAR */
+    aside.sidebar {
+      width: 210px;
+      min-width: 210px;
+      background-color: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 1.75rem 1.25rem 1.5rem 1.25rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: white;
+      margin-bottom: 2rem;
+    }
+
+    .pruva-v-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      font-family: 'Montserrat', sans-serif;
+      color: white;
+    }
+
+    .sidebar-spacer {
+      flex: 1;
+    }
+
+    /* SIDEBAR ALT ELEMANLAR */
+    .sidebar-bottom {
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: white;
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .sidebar-link:hover {
+      opacity: 0.85;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.15);
+      margin: 0.25rem 0;
+    }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-top: 0.25rem;
+    }
+
+    .avatar-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--brand-teal);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .user-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: white;
+    }
+
+    .user-role {
+      font-size: 0.8rem;
+      color: var(--sidebar-muted);
+    }
+
+    /* ANA İÇERİK ALANI */
+    main.content-area {
+      flex: 1;
+      padding: 2.25rem 3rem 3rem 3rem;
+      overflow-y: auto;
+      max-width: 1400px;
+    }
+
+    /* BAŞLIK */
+    .page-header {
+      margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 0.35rem;
+    }
+
+    .page-header p {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    /* 3'LÜ KPI KARTLARI (Kullanıcı Görseli ile 1:1 — Büyük İkonlar, İnce Çizgiler, Kibar Kart) */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 2.25rem;
+    }
+
+    .kpi-card {
+      background: #FFFFFF;
+      border: 1.5px solid #DEF5F4;
+      border-radius: 16px;
+      padding: 1.15rem 1.75rem;
+      min-height: 105px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.25rem;
+      box-shadow: 0 4px 16px rgba(0, 184, 169, 0.05);
+      transition: all 0.25s ease;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      border-color: #BEECE7;
+      box-shadow: 0 8px 24px rgba(0, 184, 169, 0.1);
+    }
+
+    .kpi-icon-box {
+      width: 68px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: transparent;
+      border: none;
+    }
+
+    .kpi-icon-box.mail {
+      color: #0E2A2B;
+    }
+
+    .kpi-icon-box.doc {
+      color: #00B8A9;
+    }
+
+    .kpi-icon-box.calendar {
+      color: #FA8B54;
+    }
+
+    .kpi-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+    }
+
+    .kpi-label {
+      font-size: 0.96rem;
+      color: #1E293B;
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+      white-space: nowrap;
+    }
+
+    .kpi-value {
+      font-size: 2.1rem;
+      font-weight: 800;
+      font-family: 'Montserrat', sans-serif;
+      color: #0E2A2B;
+      line-height: 1;
+    }
+
+    /* GELEN MESAJLAR BAŞLIĞI VE AKSİYONLAR */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .section-header h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    .section-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .search-box {
+      position: relative;
+      width: 250px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 0.55rem 0.95rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-darker);
+      background: white;
+      font-size: 0.88rem;
+      color: var(--text-body);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--brand-teal);
+    }
+
+    .search-box input::placeholder {
+      color: var(--text-light);
+    }
+
+    .btn-refresh {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-darker);
+      background: white;
+      color: var(--text-body);
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-refresh:hover {
+      border-color: var(--brand-teal);
+      color: var(--brand-teal);
+    }
+
+    .btn-refresh svg {
+      color: var(--brand-teal);
+    }
+
+    /* VERİ TABLOSU */
+    .table-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.75rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+
+    thead {
+      background-color: var(--table-header-bg);
+    }
+
+    th {
+      padding: 0.85rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #1E293B;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 1.05rem 1.25rem;
+      border-top: 1px solid var(--border-color);
+      color: #334155;
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background-color: #F8FAF9;
+    }
+
+    .col-name {
+      font-weight: 600;
+      color: #0F172A;
+    }
+
+    .col-email {
+      color: #334155;
+    }
+
+    .col-usertype {
+      color: #334155;
+    }
+
+    .col-subject {
+      color: #1E293B;
+    }
+
+    .col-date {
+      color: #334155;
+      white-space: nowrap;
+    }
+
+    .action-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* DETAYI GÖR BUTONU */
+    .btn-detail {
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-darker);
+      background: white;
+      color: #1E293B;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .btn-detail:hover {
+      border-color: #0E2A2B;
+      background: #0E2A2B;
+      color: white;
+    }
+
+    /* SİL BUTONU */
+    .btn-delete {
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid #FECDD3;
+      background: #FFF1F2;
+      color: #E11D48;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .btn-delete:hover {
+      border-color: #E11D48;
+      background: #E11D48;
+      color: white;
+    }
+
+    /* MESAJ DETAYI PANELİ (GÖRSELDEKİ ÇİZGİLİ / HATCHED KART) */
+    .detail-panel {
+      position: relative;
+      border: 1px solid var(--border-darker);
+      border-radius: 12px;
+      padding: 1.5rem 1.75rem;
+      background-color: #F9FBFA;
+      /* Çapraz çizgili / hatched arka plan deseni */
+      background-image: repeating-linear-gradient(
+        135deg,
+        rgba(14, 42, 43, 0.035) 0px,
+        rgba(14, 42, 43, 0.035) 1px,
+        transparent 1px,
+        transparent 8px
+      );
+      transition: all 0.2s ease;
+    }
+
+    .detail-panel.hidden {
+      display: none;
+    }
+
+    .detail-panel.highlight-pulse {
+      animation: pulseHighlight 0.8s ease;
+    }
+
+    @keyframes pulseHighlight {
+      0% {
+        border-color: var(--brand-teal);
+        box-shadow: 0 0 0 0 rgba(0, 184, 169, 0.4);
+      }
+      50% {
+        border-color: var(--brand-teal);
+        box-shadow: 0 0 16px 2px rgba(0, 184, 169, 0.25);
+      }
+      100% {
+        border-color: var(--border-darker);
+        box-shadow: none;
+      }
+    }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .detail-header h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    .btn-close-detail {
+      background: none;
+      border: none;
+      font-size: 1.35rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
+    }
+
+    .btn-close-detail:hover {
+      color: var(--text-dark);
+    }
+
+    /* Metadata 5'li Izgara */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .detail-item-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-item-label {
+      font-size: 0.8rem;
+      color: #64748B;
+      margin-bottom: 0.35rem;
+    }
+
+    .detail-item-val {
+      font-size: 0.88rem;
+      color: #1E293B;
+      word-break: break-word;
+    }
+
+    /* Mesaj İçeriği Kutusu */
+    .detail-message-label {
+      font-size: 0.82rem;
+      color: #64748B;
+      margin-bottom: 0.45rem;
+    }
+
+    .detail-message-content {
+      background: #FFFFFF;
+      border: 1px solid var(--border-darker);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: #1E293B;
+      min-height: 95px;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 1024px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+      .detail-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      aside.sidebar {
+        width: 70px;
+        min-width: 70px;
+        padding: 1.5rem 0.5rem;
+      }
+      .brand-title, .sidebar-link span, .user-info {
+        display: none;
+      }
+      main.content-area {
+        padding: 1.5rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SOL MENÜ (SIDEBAR) -->
+  <aside class="sidebar">
+    <!-- Üst Logo (Dişi Logo) -->
+    <a href="/" class="sidebar-brand" title="PRUVAI Ana Sayfaya Git">
+      <img src="/static/images/logo-white.png" alt="PRUVAI" style="height: 32px; max-width: 170px; object-fit: contain;">
+    </a>
+
+    <div class="sidebar-spacer"></div>
+
+    <!-- Alt Menü Bağlantıları -->
+    <div class="sidebar-bottom">
+      <!-- Bize Ulaşın'ı Gör -->
+      <a href="/" class="sidebar-link" title="Karşılama Sayfasına Git">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          <circle cx="9" cy="10" r="1" fill="currentColor"></circle>
+          <circle cx="12" cy="10" r="1" fill="currentColor"></circle>
+          <circle cx="15" cy="10" r="1" fill="currentColor"></circle>
+        </svg>
+        <span>Bize Ulaşın'ı Gör</span>
+      </a>
+
+      <!-- Çıkış Yap -->
+      <a href="/" class="sidebar-link" title="Çıkış Yap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Çıkış Yap</span>
+      </a>
+
+      <!-- Çizgi -->
+      <div class="sidebar-divider"></div>
+
+      <!-- Kullanıcı Profili (AE Admin / Yönetici) -->
+      <div class="sidebar-user">
+        <div class="avatar-circle">AE</div>
+        <div class="user-info">
+          <span class="user-name">Admin</span>
+          <span class="user-role">Yönetici</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ANA İÇERİK ALANI -->
+  <main class="content-area">
+    <!-- Üst Başlık -->
+    <div class="page-header">
+      <h1>Yönetim Paneli</h1>
+      <p>Web sitesi üzerinden gelen iletişim taleplerini görüntüleyin ve yönetin.</p>
+    </div>
+
+    <!-- 3'LÜ KPI KARTLARI (Kullanıcı Görseli ile 1:1 — İnce Çizgili, Büyük İkonlar) -->
+    <div class="kpi-grid">
+      <!-- 1. Toplam Mesaj -->
+      <div class="kpi-card">
+        <div class="kpi-icon-box mail">
+          <svg width="58" height="42" viewBox="0 0 26 20" fill="none" stroke="#0E2A2B" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="1" width="24" height="18" rx="2.5"></rect>
+            <path d="M1 3L13 12.5L25 3"></path>
+          </svg>
+        </div>
+        <div class="kpi-info">
+          <div class="kpi-label">Toplam Mesaj</div>
+          <div class="kpi-value" id="kpiToplamMesaj">0</div>
+        </div>
+      </div>
+
+      <!-- 2. Bu Ay Gelen -->
+      <div class="kpi-card">
+        <div class="kpi-icon-box doc">
+          <svg width="48" height="56" viewBox="0 0 22 26" fill="none" stroke="#00B8A9" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 2H4C2.9 2 2 2.9 2 4V22C2 23.1 2.9 24 4 24H16C17.1 24 18 23.1 18 22V19M18 7V4C18 2.9 17.1 2 16 2Z"></path>
+            <circle cx="6" cy="7.5" r="0.8" fill="#00B8A9" stroke="none"></circle>
+            <line x1="9" y1="7.5" x2="20" y2="7.5"></line>
+            <circle cx="6" cy="11.5" r="0.8" fill="#00B8A9" stroke="none"></circle>
+            <line x1="9" y1="11.5" x2="16" y2="11.5"></line>
+            <circle cx="6" cy="15.5" r="0.8" fill="#00B8A9" stroke="none"></circle>
+            <line x1="9" y1="15.5" x2="20" y2="15.5"></line>
+            <circle cx="6" cy="19.5" r="0.8" fill="#00B8A9" stroke="none"></circle>
+            <line x1="9" y1="19.5" x2="16" y2="19.5"></line>
+          </svg>
+        </div>
+        <div class="kpi-info">
+          <div class="kpi-label">Bu Ay Gelen</div>
+          <div class="kpi-value" id="kpiBuAyGelen">0</div>
+        </div>
+      </div>
+
+      <!-- 3. Bugün Gelen -->
+      <div class="kpi-card">
+        <div class="kpi-icon-box calendar">
+          <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#FA8B54" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.5" y="4" width="19" height="17" rx="3"></rect>
+            <line x1="7" y1="1.5" x2="7" y2="5.5"></line>
+            <line x1="17" y1="1.5" x2="17" y2="5.5"></line>
+            <line x1="2.5" y1="9.5" x2="21.5" y2="9.5"></line>
+            <circle cx="6.5" cy="13.5" r="0.8" fill="#FA8B54" stroke="none"></circle>
+            <circle cx="10" cy="13.5" r="0.8" fill="#FA8B54" stroke="none"></circle>
+            <circle cx="13.5" cy="13.5" r="0.8" fill="#FA8B54" stroke="none"></circle>
+            <circle cx="17" cy="13.5" r="0.8" fill="#FA8B54" stroke="none"></circle>
+            <circle cx="6.5" cy="17.5" r="0.8" fill="#FA8B54" stroke="none"></circle>
+            <circle cx="10" cy="17.5" r="0.8" fill="#FA8B54" stroke="none"></circle>
+            <circle cx="13.5" cy="17.5" r="0.8" fill="#FA8B54" stroke="none"></circle>
+            <circle cx="17" cy="17.5" r="0.8" fill="#FA8B54" stroke="none"></circle>
+          </svg>
+        </div>
+        <div class="kpi-info">
+          <div class="kpi-label">Bugün Gelen</div>
+          <div class="kpi-value" id="kpiBugunGelen">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GELEN MESAJLAR BAŞLIĞI VE FİLTRE -->
+    <div class="section-header">
+      <h2>Gelen Mesajlar</h2>
+      <div class="section-actions">
+        <div class="search-box">
+          <input type="text" id="aramaInput" placeholder="Mesajlarda ara..." />
+        </div>
+        <button id="yenileBtn" class="btn-refresh">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Yenile
+        </button>
+      </div>
+    </div>
+
+    <!-- VERİ TABLOSU -->
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Ad Soyad</th>
+            <th>E-posta</th>
+            <th>Kullanıcı Tipi</th>
+            <th>Konu</th>
+            <th>Tarih</th>
+            <th>Mesaj</th>
+          </tr>
+        </thead>
+        <tbody id="tabloGovdesi">
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 2.5rem; color: #94A3B8;">
+              Kayıtlar yükleniyor...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MESAJ DETAYI PANELİ (GÖRSELDEKİ BİREBİR KART) -->
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-header">
+        <h3>Mesaj Detayı</h3>
+        <button class="btn-close-detail" id="detailCloseBtn" title="Kapat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 5'li Bilgi Başlıkları -->
+      <div class="detail-grid">
+        <div class="detail-item-col">
+          <span class="detail-item-label">Ad Soyad</span>
+          <span class="detail-item-val" id="detayName">-</span>
+        </div>
+        <div class="detail-item-col">
+          <span class="detail-item-label">E-posta</span>
+          <span class="detail-item-val" id="detayEmail">-</span>
+        </div>
+        <div class="detail-item-col">
+          <span class="detail-item-label">Kullanıcı Tipi</span>
+          <span class="detail-item-val" id="detayUserType">-</span>
+        </div>
+        <div class="detail-item-col">
+          <span class="detail-item-label">Konu</span>
+          <span class="detail-item-val" id="detaySubject">-</span>
+        </div>
+        <div class="detail-item-col">
+          <span class="detail-item-label">Tarih</span>
+          <span class="detail-item-val" id="detayDate">-</span>
+        </div>
+      </div>
+
+      <!-- Mesaj Metni -->
+      <div class="detail-message-label">Mesaj</div>
+      <div class="detail-message-content" id="detayMessage">-</div>
+    </div>
+
+  </main>
+
+  <script>
+    let tumKayitlar = [];
+
+    const tabloGovdesi = document.getElementById('tabloGovdesi');
+    const aramaInput = document.getElementById('aramaInput');
+    const yenileBtn = document.getElementById('yenileBtn');
+
+    const kpiToplamMesaj = document.getElementById('kpiToplamMesaj');
+    const kpiBuAyGelen = document.getElementById('kpiBuAyGelen');
+    const kpiBugunGelen = document.getElementById('kpiBugunGelen');
+
+    // Detay Paneli Elemanları
+    const detailPanel = document.getElementById('detailPanel');
+    const detailCloseBtn = document.getElementById('detailCloseBtn');
+    const detayName = document.getElementById('detayName');
+    const detayEmail = document.getElementById('detayEmail');
+    const detayUserType = document.getElementById('detayUserType');
+    const detaySubject = document.getElementById('detaySubject');
+    const detayDate = document.getElementById('detayDate');
+    const detayMessage = document.getElementById('detayMessage');
+
+    // Tarih formatlayıcı (GG.AA.YYYY)
+    function tarihFormatla(tarihStr) {
+      if (!tarihStr) return "-";
+      try {
+        const parca = String(tarihStr).slice(0, 10).split('-');
+        if (parca.length === 3) {
+          return `${parca[2]}.${parca[1]}.${parca[0]}`;
+        }
+        const d = new Date(tarihStr.replace(" ", "T"));
+        if (!isNaN(d.getTime())) {
+          const gun = String(d.getDate()).padStart(2, '0');
+          const ay = String(d.getMonth() + 1).padStart(2, '0');
+          const yil = d.getFullYear();
+          return `${gun}.${ay}.${yil}`;
+        }
+        return String(tarihStr).slice(0, 10);
+      } catch (e) {
+        return String(tarihStr).slice(0, 10);
+      }
+    }
+
+    // Backend'den kayıtları çek
+    async function leadleriYukle() {
+      try {
+        const response = await fetch('/api/leads');
+        const sonuc = await response.json();
+
+        if (sonuc.basari && Array.isArray(sonuc.leadler)) {
+          tumKayitlar = sonuc.leadler;
+          metrikleriHesapla(tumKayitlar);
+          tabloyuCiz(tumKayitlar);
+
+          // İlk kaydı detay alanına varsayılan olarak yerleştir (otomatik kaydırma yapmadan)
+          if (tumKayitlar.length > 0) {
+            detayGoster(0, false);
+          } else {
+            detailPanel.classList.add('hidden');
+          }
+        } else {
+          tabloGovdesi.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#EF4444; padding:2rem;">Kayıtlar yüklenemedi.</td></tr>`;
+        }
+      } catch (err) {
+        tabloGovdesi.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#EF4444; padding:2rem;">Sunucuya bağlanılamadı.</td></tr>`;
+      }
+    }
+
+    // KPI Kartları Hesaplama
+    function metrikleriHesapla(liste) {
+      kpiToplamMesaj.textContent = liste.length;
+
+      const bugun = new Date();
+      const buYil = bugun.getFullYear();
+      const buAy = bugun.getMonth();
+      const buGunTarih = bugun.getDate();
+
+      let buAySayac = 0;
+      let bugunSayac = 0;
+
+      liste.forEach(item => {
+        if (item.tarih) {
+          const d = new Date(item.tarih.replace(" ", "T"));
+          if (!isNaN(d.getTime())) {
+            if (d.getFullYear() === buYil && d.getMonth() === buAy) {
+              buAySayac++;
+              if (d.getDate() === buGunTarih) {
+                bugunSayac++;
+              }
+            }
+          } else {
+            buAySayac++;
+          }
+        }
+      });
+
+      kpiBuAyGelen.textContent = buAySayac;
+      kpiBugunGelen.textContent = bugunSayac;
+    }
+
+    // Tabloyu Çiz
+    function tabloyuCiz(liste) {
+      if (liste.length === 0) {
+        tabloGovdesi.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align:center; padding:2.5rem; color:#94A3B8;">
+              Kayıt bulunamadı.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tabloGovdesi.innerHTML = liste.map((item, index) => {
+        const ad = guvenliMetin(item.fullName || item.isim || "Aday");
+        const email = guvenliMetin(item.email || item.telefon || "-");
+        const userType = guvenliMetin(item.userType || item.hedef_rol || "Yeni Mezun");
+        const konu = guvenliMetin(item.subject || item.konu || "Platform Hakkında");
+        const tarih = tarihFormatla(item.tarih);
+
+        return `
+          <tr>
+            <td class="col-name">${ad}</td>
+            <td class="col-email">${email}</td>
+            <td class="col-usertype">${userType}</td>
+            <td class="col-subject">${konu}</td>
+            <td class="col-date">${tarih}</td>
+            <td>
+              <div class="action-group">
+                <button class="btn-detail" onclick="detayGoster(${index}, true)">
+                  Detayı Gör &gt;
+                </button>
+                <button class="btn-delete" onclick="kayitSil(event, ${item.id}, ${index})" title="Mesajı Kalıcı Olarak Sil">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                  Sil
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function guvenliMetin(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Detay Panelini Göster ve Otomatik Olarak Oraya Kaydır
+    window.detayGoster = function(index, autoScroll = true) {
+      const item = tumKayitlar[index];
+      if (!item) return;
+
+      detayName.textContent = item.fullName || item.isim || "Aday";
+      detayEmail.textContent = item.email || item.telefon || "-";
+      detayUserType.textContent = item.userType || item.hedef_rol || "Yeni Mezun";
+      detaySubject.textContent = item.subject || item.konu || "Platform Hakkında";
+      detayDate.textContent = tarihFormatla(item.tarih);
+      detayMessage.textContent = item.message || item.mesaj || "Mesaj içeriği bulunamadı.";
+
+      detailPanel.classList.remove('hidden');
+
+      if (autoScroll) {
+        // Vurgulama animasyonunu tetikle
+        detailPanel.classList.remove('highlight-pulse');
+        void detailPanel.offsetWidth;
+        detailPanel.classList.add('highlight-pulse');
+
+        // Kullanıcıyı doğrudan mesaj detay kutusuna pürüzsüzce kaydır
+        setTimeout(() => {
+          detailPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+      }
+    };
+
+    // Detay Paneli Kapat
+    detailCloseBtn.addEventListener('click', () => {
+      detailPanel.classList.add('hidden');
+    });
+
+    // Mesajı Sil Fonksiyonu (Hem Veritabanından Hem Ekrandan Siler)
+    window.kayitSil = async function(event, id, index) {
+      if (event) event.stopPropagation();
+
+      if (!confirm('Bu mesajı silmek istediğinize emin misiniz?')) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/leads/${id}`, { method: 'DELETE' });
+        const sonuc = await res.json();
+
+        if (res.ok && sonuc.basari) {
+          const silinen = tumKayitlar[index];
+          tumKayitlar.splice(index, 1);
+          metrikleriHesapla(tumKayitlar);
+          tabloyuCiz(tumKayitlar);
+
+          // Eğer açık olan detay bu mesaja aitse detay panelini gizle
+          if (silinen && detayName.textContent === (silinen.fullName || silinen.isim)) {
+            detailPanel.classList.add('hidden');
+          }
+        } else {
+          alert('Kayıt silinirken hata oluştu: ' + (sonuc.hata || 'Sunucu hatası'));
+        }
+      } catch (err) {
+        // Bağlantı hatasında bile en azından yerel ekrandan kaldır
+        tumKayitlar.splice(index, 1);
+        metrikleriHesapla(tumKayitlar);
+        tabloyuCiz(tumKayitlar);
+      }
+    };
+
+    // Arama Kutusu Filtreleme
+    aramaInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      const filtrelenmis = tumKayitlar.filter(item => {
+        const ad = (item.fullName || item.isim || "").toLowerCase();
+        const email = (item.email || item.telefon || "").toLowerCase();
+        const rol = (item.userType || item.hedef_rol || "").toLowerCase();
+        const konu = (item.subject || item.konu || "").toLowerCase();
+        const mesaj = (item.message || item.mesaj || "").toLowerCase();
+
+        return ad.includes(q) || email.includes(q) || rol.includes(q) || konu.includes(q) || mesaj.includes(q);
+      });
+      tabloyuCiz(filtrelenmis);
+    });
+
+    // Yenile Butonu
+    yenileBtn.addEventListener('click', leadleriYukle);
+
+    // Sayfa Açıldığında Başlat
+    leadleriYukle();
+  </script>
+</body>
+</html>

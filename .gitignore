@@ -1,0 +1,27 @@
+# Python Sanal Ortamı
+venv/
+.venv/
+env/
+
+# Gizli Ortam Değişkenleri (.env ASLA Git'e gönderilmez)
+.env
+.env.local
+
+# Python Derleme Dosyaları
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# SQLite Veri Tabanı Dosyaları
+*.db
+*.sqlite3
+
+# Geliştirme Ortamı Dosyaları
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+scratch/
+.system_generated/
