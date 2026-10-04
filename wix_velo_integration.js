@@ -250,189 +250,148 @@ function baslatChatbot() {
 export function baslatYonetimPaneli() {
     let tumKayitlar = [];
 
-    // REPEATER SATIRLARINI BAĞLAMA
+    // Detay panelini başlangıçta kapalı tut
+    try {
+        const c = $w('#adminMessageDetailContainer');
+        if (c) {
+            try { c.collapse(); } catch (e) {}
+            try { c.hide(); } catch (e) {}
+        }
+    } catch (e) {}
+
+    // REPEATER SATIRLARINI DOLDURMA YARDIMCISI
+    function satiriDoldur($item, itemData) {
+        // 1. İsim
+        try {
+            if ($item("#adminRowName")) {
+                $item("#adminRowName").text = itemData.fullName || itemData.isim || "Aday";
+            }
+        } catch (e) {}
+
+        // 2. E-posta / İletişim
+        try {
+            if ($item("#adminRowEmail")) {
+                $item("#adminRowEmail").text = itemData.email || itemData.telefon || "-";
+            }
+        } catch (e) {}
+
+        // 3. Kullanıcı Tipi
+        try {
+            if ($item("#adminRowUserType")) {
+                $item("#adminRowUserType").text = itemData.userType || itemData.hedef_rol || "Yeni Mezun";
+            }
+        } catch (e) {}
+
+        // 4. Konu
+        try {
+            if ($item("#adminRowSubject")) {
+                $item("#adminRowSubject").text = itemData.subject || itemData.konu || "Platform Hakkında";
+            }
+        } catch (e) {}
+
+        // 5. Tarih (GG.AA.YYYY)
+        try {
+            if ($item("#adminRowDate")) {
+                if (itemData._createdDate) {
+                    $item("#adminRowDate").text = new Date(itemData._createdDate).toLocaleDateString('tr-TR');
+                } else if (itemData.tarih) {
+                    const parca = String(itemData.tarih).slice(0, 10).split('-');
+                    $item("#adminRowDate").text = parca.length === 3 ? `${parca[2]}.${parca[1]}.${parca[0]}` : String(itemData.tarih).slice(0, 10);
+                } else {
+                    $item("#adminRowDate").text = "-";
+                }
+            }
+        } catch (e) {}
+
+        // 6. "Detayı Gör >" BUTONU (#adminViewMessageButton)
+        try {
+            const btnDetail = $item("#adminViewMessageButton") || $item("#adminRowDetailBtn");
+            if (btnDetail && typeof btnDetail.onClick === 'function') {
+                btnDetail.onClick(async () => {
+                    await mesajDetayiniGoster(itemData);
+                });
+            }
+        } catch (e) {}
+
+        // 7. "Sil" BUTONU
+        try {
+            const btnSil = $item("#adminRowDeleteBtn") || $item("#adminDeleteBtn") || $item("#btnDelete");
+            if (btnSil && typeof btnSil.onClick === 'function') {
+                btnSil.onClick(async () => {
+                    if (itemData._id) {
+                        try { await wixData.remove("ContactMessages", itemData._id); } catch (e) {}
+                    }
+                    if (itemData.id) {
+                        try { await fetch(`${BACKEND_URL}/api/leads/${itemData.id}`, { method: "DELETE" }); } catch (e) {}
+                    }
+                    tabloyuguncelle();
+                });
+            }
+        } catch (e) {}
+    }
+
+    // MESAJ DETAYINI GÖSTER
+    async function mesajDetayiniGoster(itemData) {
+        if (!itemData) return;
+
+        const isim = itemData.fullName || itemData.isim || "Aday";
+        const email = itemData.email || itemData.telefon || "-";
+        const userType = itemData.userType || itemData.hedef_rol || "Yeni Mezun";
+        const subject = itemData.subject || itemData.konu || "Platform Hakkında";
+        const mesajIcerik = itemData.message || itemData.mesaj || "Mesaj içeriği bulunamadı.";
+        
+        let tarihMetni = "-";
+        if (itemData._createdDate) {
+            tarihMetni = new Date(itemData._createdDate).toLocaleDateString('tr-TR');
+        } else if (itemData.tarih) {
+            const parca = String(itemData.tarih).slice(0, 10).split('-');
+            tarihMetni = parca.length === 3 ? `${parca[2]}.${parca[1]}.${parca[0]}` : String(itemData.tarih).slice(0, 10);
+        }
+
+        // Birebir kullanıcının belirttiği ID'lere verileri ata
+        try { if ($w('#adminDetailName')) $w('#adminDetailName').text = String(isim); } catch (e) {}
+        try { if ($w('#adminDetailEmail')) $w('#adminDetailEmail').text = String(email); } catch (e) {}
+        try { if ($w('#adminDetailUserType')) $w('#adminDetailUserType').text = String(userType); } catch (e) {}
+        try { if ($w('#adminDetailSubject')) $w('#adminDetailSubject').text = String(subject); } catch (e) {}
+        try { if ($w('#adminDetailDate')) $w('#adminDetailDate').text = String(tarihMetni); } catch (e) {}
+        try {
+            if ($w('#adminDetailMessage')) {
+                if (typeof $w('#adminDetailMessage').text !== 'undefined') {
+                    $w('#adminDetailMessage').text = String(mesajIcerik);
+                } else if (typeof $w('#adminDetailMessage').value !== 'undefined') {
+                    $w('#adminDetailMessage').value = String(mesajIcerik);
+                }
+            }
+        } catch (e) {}
+
+        // #adminMessageDetailContainer KONTEYNIRINI AÇ
+        try {
+            const container = $w("#adminMessageDetailContainer");
+            if (container) {
+                // Önce görünür yap (Hidden özelliğini kaldır)
+                try { await container.show(); } catch (err) {}
+                // Sonra genişlet (Collapsed özelliğini kaldır)
+                try { await container.expand(); } catch (err) {}
+
+                // Ekranı pürüzsüz kaydır
+                setTimeout(async () => {
+                    try {
+                        if (typeof container.scrollTo === 'function') {
+                            await container.scrollTo();
+                        }
+                    } catch (scrollErr) {}
+                }, 80);
+            }
+        } catch (e) {}
+
+        console.log(`[${isim}] Mesaj Detayı açıldı (#adminMessageDetailContainer).`);
+    }
+
+    // REPEATER BAĞLAMA
     try {
         if ($w("#adminMessagesRepeater")) {
             $w("#adminMessagesRepeater").onItemReady(($item, itemData, index) => {
-                
-                // 1. İsim
-                try {
-                    if ($item("#adminRowName")) {
-                        $item("#adminRowName").text = itemData.fullName || itemData.isim || "Aday";
-                    }
-                } catch (e) {}
-
-                // 2. E-posta / İletişim
-                try {
-                    if ($item("#adminRowEmail")) {
-                        $item("#adminRowEmail").text = itemData.email || itemData.telefon || "-";
-                    }
-                } catch (e) {}
-
-                // 3. Kullanıcı Tipi
-                try {
-                    if ($item("#adminRowUserType")) {
-                        $item("#adminRowUserType").text = itemData.userType || itemData.hedef_rol || "Yeni Mezun";
-                    }
-                } catch (e) {}
-
-                // 4. Konu
-                try {
-                    if ($item("#adminRowSubject")) {
-                        $item("#adminRowSubject").text = itemData.subject || itemData.konu || "Platform Hakkında";
-                    }
-                } catch (e) {}
-
-                // 5. Tarih (GG.AA.YYYY)
-                try {
-                    if ($item("#adminRowDate")) {
-                        if (itemData._createdDate) {
-                            $item("#adminRowDate").text = new Date(itemData._createdDate).toLocaleDateString('tr-TR');
-                        } else if (itemData.tarih) {
-                            const parca = String(itemData.tarih).slice(0, 10).split('-');
-                            $item("#adminRowDate").text = parca.length === 3 ? `${parca[2]}.${parca[1]}.${parca[0]}` : String(itemData.tarih).slice(0, 10);
-                        } else {
-                            $item("#adminRowDate").text = "-";
-                        }
-                    }
-                } catch (e) {}
-
-                // 6. "Detayı Gör >" BUTONU (#adminViewMessageButton)
-                try {
-                    const olasiButonlar = [
-                        "#adminViewMessageButton", 
-                        "#adminRowDetailBtn", 
-                        "#button1", "#button2", "#button3", "#button4",
-                        "#btnDetail", "#detailBtn", "#detayGorBtn", "#detayBtn"
-                    ];
-                    let btnDetail = null;
-                    for (let bId of olasiButonlar) {
-                        try {
-                            if ($item(bId) && typeof $item(bId).onClick === 'function') {
-                                btnDetail = $item(bId);
-                                break;
-                            }
-                        } catch (e) {}
-                    }
-
-                    if (btnDetail) {
-                        btnDetail.onClick(async () => {
-                            const mesajIcerik = itemData.message || itemData.mesaj || "Mesaj içeriği bulunamadı.";
-                            const gonderen = itemData.fullName || itemData.isim || "Aday";
-                            const email = itemData.email || itemData.telefon || "-";
-                            const userType = itemData.userType || itemData.hedef_rol || "Yeni Mezun";
-                            const subject = itemData.subject || itemData.konu || "Platform Hakkında";
-                            
-                            let tarihMetni = "-";
-                            if (itemData._createdDate) {
-                                tarihMetni = new Date(itemData._createdDate).toLocaleDateString('tr-TR');
-                            } else if (itemData.tarih) {
-                                const parca = String(itemData.tarih).slice(0, 10).split('-');
-                                tarihMetni = parca.length === 3 ? `${parca[2]}.${parca[1]}.${parca[0]}` : String(itemData.tarih).slice(0, 10);
-                            } else if ($item("#adminRowDate") && $item("#adminRowDate").text) {
-                                tarihMetni = $item("#adminRowDate").text;
-                            }
-
-                            // Güvenli metin ve değer atama yardımcısı
-                            function metinAta(idDizisi, val) {
-                                for (let id of idDizisi) {
-                                    try {
-                                        const el = $w(id);
-                                        if (el) {
-                                            if (typeof el.text !== 'undefined') {
-                                                el.text = String(val);
-                                                return true;
-                                            } else if (typeof el.value !== 'undefined') {
-                                                el.value = String(val);
-                                                return true;
-                                            }
-                                        }
-                                    } catch (e) {}
-                                }
-                                return false;
-                            }
-
-                            // Detay kutusundaki verileri doldur
-                            metinAta(["#adminMessageDetailName", "#adminDetailName", "#detailName", "#messageDetailName", "#textDetailName", "#nameText", "#text14", "#text15", "#text1", "#text2"], gonderen);
-                            metinAta(["#adminMessageDetailEmail", "#adminDetailEmail", "#detailEmail", "#messageDetailEmail", "#textDetailEmail", "#emailText", "#text16", "#text17", "#text3", "#text4"], email);
-                            metinAta(["#adminMessageDetailUserType", "#adminDetailUserType", "#detailUserType", "#messageDetailUserType", "#textDetailUserType", "#roleText", "#text18", "#text19", "#text5", "#text6"], userType);
-                            metinAta(["#adminMessageDetailSubject", "#adminDetailSubject", "#detailSubject", "#messageDetailSubject", "#textDetailSubject", "#subjectText", "#text20", "#text21", "#text7", "#text8"], subject);
-                            metinAta(["#adminMessageDetailDate", "#adminDetailDate", "#detailDate", "#messageDetailDate", "#textDetailDate", "#dateText", "#text22", "#text23", "#text9", "#text10"], tarihMetni);
-                            metinAta(["#adminMessageDetailMessage", "#adminDetailMessage", "#detailMessage", "#messageDetailMessage", "#textDetailMessage", "#messageText", "#adminMessageDetailBody", "#adminMessageDetailContent", "#text24", "#text25", "#textBox1", "#textMessage"], mesajIcerik);
-
-                            // Detay panelini (#adminMessageDetailContainer) bul, aç ve göster
-                            const panelAdaylari = [
-                                "#adminMessageDetailContainer",
-                                "#adminDetailSection", 
-                                "#detailPanel", 
-                                "#detailSection", 
-                                "#adminDetailBox", 
-                                "#boxDetail", 
-                                "#mesajDetayi",
-                                "#box1", "#box2", "#box3", "#box4", "#box5",
-                                "#section1", "#section2", "#section3"
-                            ];
-                            let hedefPanel = null;
-
-                            for (let pId of panelAdaylari) {
-                                try {
-                                    const p = $w(pId);
-                                    if (p && (typeof p.show === 'function' || typeof p.expand === 'function')) {
-                                        if (typeof p.expand === 'function') {
-                                            await p.expand();
-                                        }
-                                        if (typeof p.show === 'function') {
-                                            await p.show();
-                                        }
-                                        hedefPanel = p;
-                                        break;
-                                    }
-                                } catch (e) {}
-                            }
-
-                            // EKRANI OTOMATİK OLARAK AÇILAN MESAJ DETAYINA KAYDIR (SCROLL)
-                            setTimeout(async () => {
-                                try {
-                                    if (hedefPanel && typeof hedefPanel.scrollTo === 'function') {
-                                        await hedefPanel.scrollTo();
-                                    }
-                                } catch (scrollErr) {
-                                    console.warn("Otomatik kaydırma hatası:", scrollErr);
-                                }
-                            }, 100);
-
-                            console.log(`[${gonderen}] Mesaj Detayı açıldı (#adminMessageDetailContainer).`);
-                        });
-                    }
-                } catch (e) {}
-
-                // 7. "Sil" BUTONU (Tıklanınca mesajı silip tabloyu ve kartları yeniler)
-                try {
-                    const btnSil = $item("#adminRowDeleteBtn") || $item("#adminDeleteBtn") || $item("#btnDelete");
-                    if (btnSil && typeof btnSil.onClick === 'function') {
-                        btnSil.onClick(async () => {
-                            // Wix CMS'ten sil
-                            try {
-                                if (itemData._id) {
-                                    await wixData.remove("ContactMessages", itemData._id);
-                                }
-                            } catch (delErr) {
-                                console.warn("Wix CMS silme uyarısı:", delErr);
-                            }
-
-                            // Render backend'den sil
-                            try {
-                                if (itemData.id) {
-                                    await fetch(`${BACKEND_URL}/api/leads/${itemData.id}`, { method: "DELETE" });
-                                }
-                            } catch (beDelErr) {}
-
-                            // Sayfayı ve sayaçları hemen güncelle
-                            tabloyuguncelle();
-                        });
-                    }
-                } catch (e) {}
-
+                satiriDoldur($item, itemData);
             });
         }
     } catch (repErr) {
@@ -441,14 +400,11 @@ export function baslatYonetimPaneli() {
 
     // Detay panelini kapatma (X) butonu
     const closeBtnAdaylari = [
+        "#adminDetailCloseBtn",
         "#adminMessageDetailCloseButton",
-        "#adminDetailCloseButton", 
         "#adminMessageDetailCloseBtn",
-        "#adminDetailCloseBtn", 
         "#closeDetailBtn", 
         "#detailCloseBtn", 
-        "#btnCloseDetail",
-        "#adminMessageDetailClose",
         "#closeBtn"
     ];
     for (let cId of closeBtnAdaylari) {
@@ -456,18 +412,14 @@ export function baslatYonetimPaneli() {
             const btnClose = $w(cId);
             if (btnClose && typeof btnClose.onClick === 'function') {
                 btnClose.onClick(async () => {
-                    const panelAdaylari = ["#adminMessageDetailContainer", "#adminDetailSection", "#detailPanel", "#detailSection", "#adminDetailBox", "#boxDetail", "#mesajDetayi"];
-                    for (let pId of panelAdaylari) {
-                        try {
-                            const p = $w(pId);
-                            if (p) {
-                                if (typeof p.hide === 'function') await p.hide();
-                                if (typeof p.collapse === 'function') await p.collapse();
-                            }
-                        } catch (e) {}
-                    }
+                    try {
+                        const p = $w("#adminMessageDetailContainer");
+                        if (p) {
+                            try { await p.hide(); } catch (e) {}
+                            try { await p.collapse(); } catch (e) {}
+                        }
+                    } catch (e) {}
                 });
-                break;
             }
         } catch (e) {}
     }
@@ -559,6 +511,10 @@ export function baslatYonetimPaneli() {
         try {
             if ($w("#adminMessagesRepeater")) {
                 $w("#adminMessagesRepeater").data = tumKayitlar;
+                // Halihazırda ekranda olan satırlara da butonları bağla
+                $w("#adminMessagesRepeater").forEachItem(($item, itemData) => {
+                    satiriDoldur($item, itemData);
+                });
             }
         } catch (repDataErr) {
             console.warn("Repeater veri aktarımı uyarısı:", repDataErr);
@@ -604,3 +560,55 @@ export function baslatYonetimPaneli() {
     // Sayfa açılır açılmaz verileri çek ve göster!
     tabloyuguncelle();
 }
+
+/**
+ * Wix Studio Properties panelinden "onClick" olayı bağlandıysa çalışan fonksiyonlar
+ */
+export async function adminViewMessageButton_click(event) {
+    try {
+        const itemId = event.context && event.context.itemId;
+        let itemData = null;
+        if (itemId && typeof tumKayitlar !== 'undefined' && tumKayitlar.length > 0) {
+            itemData = tumKayitlar.find(it => String(it._id) === String(itemId) || String(it.id) === String(itemId));
+        }
+        if (!itemData && event.context) {
+            const $item = $w.at(event.context);
+            itemData = {
+                fullName: $item("#adminRowName") ? $item("#adminRowName").text : "",
+                email: $item("#adminRowEmail") ? $item("#adminRowEmail").text : "",
+                userType: $item("#adminRowUserType") ? $item("#adminRowUserType").text : "",
+                subject: $item("#adminRowSubject") ? $item("#adminRowSubject").text : "",
+                tarih: $item("#adminRowDate") ? $item("#adminRowDate").text : ""
+            };
+        }
+        if (itemData) {
+            // Mesaj detayını göster
+            try {
+                if ($w('#adminDetailName')) $w('#adminDetailName').text = String(itemData.fullName || itemData.isim || "");
+                if ($w('#adminDetailEmail')) $w('#adminDetailEmail').text = String(itemData.email || itemData.telefon || "");
+                if ($w('#adminDetailUserType')) $w('#adminDetailUserType').text = String(itemData.userType || itemData.hedef_rol || "");
+                if ($w('#adminDetailSubject')) $w('#adminDetailSubject').text = String(itemData.subject || itemData.konu || "");
+                if ($w('#adminDetailDate')) $w('#adminDetailDate').text = String(itemData.tarih || "");
+                if ($w('#adminDetailMessage')) $w('#adminDetailMessage').text = String(itemData.message || itemData.mesaj || "");
+
+                const c = $w("#adminMessageDetailContainer");
+                if (c) {
+                    try { await c.show(); } catch (err) {}
+                    try { await c.expand(); } catch (err) {}
+                    setTimeout(() => { try { if (typeof c.scrollTo === 'function') c.scrollTo(); } catch (e) {} }, 80);
+                }
+            } catch (err) {}
+        }
+    } catch (e) {}
+}
+
+export async function adminDetailCloseBtn_click(event) {
+    try {
+        const c = $w('#adminMessageDetailContainer');
+        if (c) {
+            try { await c.hide(); } catch (e) {}
+            try { await c.collapse(); } catch (e) {}
+        }
+    } catch (e) {}
+}
+
