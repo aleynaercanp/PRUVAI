@@ -21,22 +21,41 @@ $w.onReady(function () {
 
     $w('#contactPageSubmitButton').onClick(async () => {
         const contactMessage = {
-            fullName: $w('#contactPageName').value,
-            email: $w('#contactPageEmail').value,
+            fullName: $w('#contactPageName') ? $w('#contactPageName').value : "",
+            email: $w('#contactPageEmail') ? $w('#contactPageEmail').value : "",
             userType: $w('#contactPageUserType') ? $w('#contactPageUserType').value : "Aday",
             subject: $w('#contactPageSubject') ? $w('#contactPageSubject').value : "",
             message: $w('#contactPageMessage') ? $w('#contactPageMessage').value : ""
         };
 
-        try {
-            // Formu hem Wix CMS koleksiyonuna hem de Python veritabanına kaydediyoruz
-            await wixData.insert('ContactMessages', contactMessage);
+        if (!contactMessage.fullName || !contactMessage.email) {
+            console.warn("İsim veya e-posta alanı boş!");
+            return;
+        }
 
-            await fetch(`${BACKEND_URL}/api/leads`, {
+        try {
+            // 1. ÖNCELİKLİ: Canlı Python Backend servisine (Render) kaydediyoruz
+            const response = await fetch(`${BACKEND_URL}/api/leads`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(contactMessage)
+                body: JSON.stringify({
+                    isim: contactMessage.fullName,
+                    telefon: contactMessage.email,
+                    hedef_rol: contactMessage.userType,
+                    konu: contactMessage.subject,
+                    mesaj: contactMessage.message
+                })
             });
+
+            const resJson = await response.json();
+            console.log("Backend kayıt yanıtı:", resJson);
+
+            // 2. İKİNCİL: Wix CMS koleksiyonuna opsiyonel kayıt (yetki hatası olsa bile engellemez)
+            try {
+                await wixData.insert('ContactMessages', contactMessage);
+            } catch (wixErr) {
+                console.warn("Wix CMS kaydı atlandı (yetki veya koleksiyon yok):", wixErr);
+            }
 
             // Başarılı gönderim sonrası formu sıfırlayıp onay mesajını gösteriyoruz
             if ($w('#contactPageSuccessMessage')) {
@@ -44,14 +63,11 @@ $w.onReady(function () {
                 $w('#contactPageSuccessMessage').show();
             }
 
-            $w('#contactPageName').value = '';
-            $w('#contactPageEmail').value = '';
+            if ($w('#contactPageName')) $w('#contactPageName').value = '';
+            if ($w('#contactPageEmail')) $w('#contactPageEmail').value = '';
             if ($w('#contactPageUserType')) $w('#contactPageUserType').value = undefined;
             if ($w('#contactPageSubject')) $w('#contactPageSubject').value = undefined;
             if ($w('#contactPageMessage')) $w('#contactPageMessage').value = '';
-
-            $w('#contactPageName').resetValidityIndication();
-            $w('#contactPageEmail').resetValidityIndication();
 
         } catch (error) {
             console.error('Mesaj kaydedilirken hata oluştu:', error);
@@ -323,30 +339,34 @@ export function baslatYonetimPaneli() {
         if ($w("#adminTodayCount")) $w("#adminTodayCount").text = String(bugunSayac);
     }
 
-    // Listeyi önce Wix CMS'ten, yoksa Python backend servisinden çeker
+    // Listeyi önce canlı Render Backend servisinden, gerekirse Wix CMS'ten çeker
     async function tabloyuguncelle() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/leads`);
+            const sonuc = await response.json();
+            if (sonuc.basari && Array.isArray(sonuc.leadler)) {
+                tumKayitlar = sonuc.leadler;
+                metrikleriHesapla(tumKayitlar);
+                if ($w("#adminMessagesRepeater")) {
+                    $w("#adminMessagesRepeater").data = tumKayitlar;
+                }
+                return;
+            }
+        } catch (backendErr) {
+            console.warn("Backend'den çekilemedi, Wix CMS deneniyor:", backendErr);
+        }
+
         try {
             const wixVerisi = await wixData.query("ContactMessages").descending("_createdDate").find();
             if (wixVerisi.items.length > 0) {
                 tumKayitlar = wixVerisi.items;
                 metrikleriHesapla(tumKayitlar);
-                $w("#adminMessagesRepeater").data = tumKayitlar;
-                return;
+                if ($w("#adminMessagesRepeater")) {
+                    $w("#adminMessagesRepeater").data = tumKayitlar;
+                }
             }
         } catch (wixErr) {
-            console.warn("Wix koleksiyonu okunamadı, backend deneniyor:", wixErr);
-        }
-
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/leads`);
-            const sonuc = await response.json();
-            if (sonuc.basari && sonuc.leadler && sonuc.leadler.length > 0) {
-                tumKayitlar = sonuc.leadler;
-                metrikleriHesapla(tumKayitlar);
-                $w("#adminMessagesRepeater").data = tumKayitlar;
-            }
-        } catch (backendErr) {
-            console.error("Backend bağlantı hatası:", backendErr);
+            console.warn("Wix koleksiyonu da okunamadı:", wixErr);
         }
     }
 
