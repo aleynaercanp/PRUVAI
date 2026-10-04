@@ -299,7 +299,17 @@ export function baslatYonetimPaneli() {
 
                 // 6. "Detayı Gör >" BUTONU (Aşağıdaki detay kutusunu açar ve ekranı oraya kaydırır)
                 try {
-                    const btnDetail = $item("#adminRowDetailBtn");
+                    const olasiButonlar = ["#adminRowDetailBtn", "#button1", "#button2", "#button3", "#btnDetail", "#detailBtn", "#detayGorBtn", "#detayBtn"];
+                    let btnDetail = null;
+                    for (let bId of olasiButonlar) {
+                        try {
+                            if ($item(bId) && typeof $item(bId).onClick === 'function') {
+                                btnDetail = $item(bId);
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+
                     if (btnDetail) {
                         btnDetail.onClick(async () => {
                             const mesajIcerik = itemData.message || itemData.mesaj || "Mesaj içeriği bulunamadı.";
@@ -307,7 +317,7 @@ export function baslatYonetimPaneli() {
                             const email = itemData.email || itemData.telefon || "-";
                             const userType = itemData.userType || itemData.hedef_rol || "Yeni Mezun";
                             const subject = itemData.subject || itemData.konu || "Platform Hakkında";
-                            const date = $item("#adminRowDate") ? $item("#adminRowDate").text : "-";
+                            const date = $item("#adminRowDate") ? $item("#adminRowDate").text : (itemData.tarih ? String(itemData.tarih).slice(0, 10) : "-");
 
                             // Güvenli metin atama yardımcısı (farklı ID alternatiflerini dener)
                             function metinAta(idDizisi, val) {
@@ -323,21 +333,27 @@ export function baslatYonetimPaneli() {
                                 return false;
                             }
 
-                            metinAta(["#adminDetailName", "#detayName", "#detailName"], gonderen);
-                            metinAta(["#adminDetailEmail", "#detayEmail", "#detailEmail"], email);
-                            metinAta(["#adminDetailUserType", "#detayUserType", "#detailUserType"], userType);
-                            metinAta(["#adminDetailSubject", "#detaySubject", "#detailSubject"], subject);
-                            metinAta(["#adminDetailDate", "#detayDate", "#detailDate"], date);
-                            metinAta(["#adminDetailMessage", "#detayMessage", "#detailMessage"], mesajIcerik);
+                            metinAta(["#adminDetailName", "#detayName", "#detailName", "#textDetailName", "#nameText", "#text14", "#text15"], gonderen);
+                            metinAta(["#adminDetailEmail", "#detayEmail", "#detailEmail", "#textDetailEmail", "#emailText", "#text16", "#text17"], email);
+                            metinAta(["#adminDetailUserType", "#detayUserType", "#detailUserType", "#textDetailUserType", "#roleText", "#text18", "#text19"], userType);
+                            metinAta(["#adminDetailSubject", "#detaySubject", "#detailSubject", "#textDetailSubject", "#subjectText", "#text20", "#text21"], subject);
+                            metinAta(["#adminDetailDate", "#detayDate", "#detailDate", "#textDetailDate", "#dateText", "#text22", "#text23"], date);
+                            metinAta(["#adminDetailMessage", "#detayMessage", "#detailMessage", "#textDetailMessage", "#messageText", "#text24", "#text25", "#textBox1"], mesajIcerik);
 
                             // Detay panelini bul ve aç
-                            const panelAdaylari = ["#adminDetailSection", "#detailPanel", "#detailSection", "#adminDetailBox", "#boxDetail", "#mesajDetayi"];
+                            const panelAdaylari = [
+                                "#adminDetailSection", "#detailPanel", "#detailSection", 
+                                "#adminDetailBox", "#boxDetail", "#mesajDetayi",
+                                "#box1", "#box2", "#box3", "#box4", "#box5",
+                                "#section1", "#section2", "#section3", "#section4",
+                                "#container1", "#container2", "#container3"
+                            ];
                             let hedefPanel = null;
 
                             for (let pId of panelAdaylari) {
                                 try {
                                     const p = $w(pId);
-                                    if (p) {
+                                    if (p && (typeof p.show === 'function' || typeof p.expand === 'function')) {
                                         if (typeof p.expand === 'function') {
                                             await p.expand();
                                         }
