@@ -6,8 +6,8 @@
 import { fetch } from 'wix-fetch';
 import wixData from 'wix-data';
 
-// Python Backend bağlantı adresi
-const BACKEND_URL = "http://localhost:5000"; 
+// Python Backend bağlantı adresi (Canlı Render Sunucusu)
+const BACKEND_URL = "https://pruvai-backend.onrender.com"; 
 
 $w.onReady(function () {
 
