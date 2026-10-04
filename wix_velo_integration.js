@@ -1,42 +1,52 @@
 /**
  * PRUVAI — Wix Studio Velo Entegrasyonu
  * İletişim formu, AI kariyer asistanı ve yönetim paneli fonksiyonları.
+ * 
+ * TAM DİNAMİK WIX CMS + CANLI RENDER ENTEGRASYONU
  */
 
 import { fetch } from 'wix-fetch';
 import wixData from 'wix-data';
 
-// Canlı Render Python Backend bağlantı adresi
+// Canlı Python Backend bağlantı adresi (Render)
 const BACKEND_URL = "https://pruvai-backend.onrender.com"; 
 
 $w.onReady(function () {
-    console.log("PRUVAI Velo Sistemi Başlatılıyor...");
+    console.log("PRUVAI Sistemi Yükleniyor...");
 
-    // 1. İLETİŞİM FORMU (Sayfada form varsa otomatik çalıştırır)
-    if ($w('#contactPageSubmitButton')) {
-        baslatIletisimFormu();
-    }
+    // 1. YÖNETİM PANELİ (Sayfada sayaçlar veya tablo varsa doğrudan başlat)
+    try {
+        if ($w('#adminTotalMessages') || $w('#adminMessagesRepeater')) {
+            baslatYonetimPaneli();
+        }
+    } catch (e) {}
 
-    // 2. CHATBOT SOHBET ALANI (Sayfada chatbot varsa otomatik çalıştırır)
-    if ($w('#chatRepeater')) {
-        baslatChatbot();
-    }
+    // 2. BİZE ULAŞIN FORMU (Sayfada form gönder butonu varsa doğrudan başlat)
+    try {
+        if ($w('#contactPageSubmitButton')) {
+            baslatIletisimFormu();
+        }
+    } catch (e) {}
 
-    // 3. YÖNETİM PANELİ (Sayfada yönetim paneli veya sayaç kartları varsa otomatik çalıştırır)
-    if ($w('#adminMessagesRepeater') || $w('#adminTotalMessages')) {
-        baslatYonetimPaneli();
-    }
+    // 3. CHATBOT SOHBET ALANI (Sayfada chatbot repeater varsa doğrudan başlat)
+    try {
+        if ($w('#chatRepeater')) {
+            baslatChatbot();
+        }
+    } catch (e) {}
 });
 
 
 // ============================================================================
-// 1. İLETİŞİM FORMU (BİZE ULAŞIN)
+// 1. İLETİŞİM FORMU (BİZE ULAŞIN SAYFASI)
 // ============================================================================
 function baslatIletisimFormu() {
-    if ($w('#contactPageSuccessMessage')) {
-        $w('#contactPageSuccessMessage').hide();
-        $w('#contactPageSuccessMessage').collapse();
-    }
+    try {
+        if ($w('#contactPageSuccessMessage')) {
+            $w('#contactPageSuccessMessage').hide();
+            $w('#contactPageSuccessMessage').collapse();
+        }
+    } catch (e) {}
 
     $w('#contactPageSubmitButton').onClick(async () => {
         const contactMessage = {
@@ -52,9 +62,17 @@ function baslatIletisimFormu() {
             return;
         }
 
+        // 1. WIX CMS KOLEKSİYONUNA YAZMA (Wix üzerinde tamamen bağımsız dinamiklik)
         try {
-            // 1. ÖNCELİKLİ: Doğrudan canlı Render veritabanına kaydediyoruz
-            const response = await fetch(`${BACKEND_URL}/api/leads`, {
+            await wixData.insert('ContactMessages', contactMessage);
+            console.log("Wix CMS koleksiyonuna başarıyla eklendi.");
+        } catch (wixErr) {
+            console.warn("Wix CMS kaydı uyarısı:", wixErr);
+        }
+
+        // 2. CANLI RENDER BACKEND'E YAZMA (Hocanın kontrol ettiği veritabanı)
+        try {
+            await fetch(`${BACKEND_URL}/api/leads`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -65,38 +83,34 @@ function baslatIletisimFormu() {
                     mesaj: contactMessage.message
                 })
             });
+            console.log("Backend veritabanına başarıyla iletildi.");
+        } catch (beErr) {
+            console.warn("Backend iletim uyarısı:", beErr);
+        }
 
-            const resJson = await response.json();
-            console.log("Backend kayıt başarılı:", resJson);
-
-            // 2. İKİNCİL: Wix CMS koleksiyonuna opsiyonel kayıt
-            try {
-                await wixData.insert('ContactMessages', contactMessage);
-            } catch (wixErr) {
-                console.warn("Wix CMS kaydı atlandı:", wixErr);
-            }
-
-            // Onay mesajını göster
+        // Onay mesajını göster
+        try {
             if ($w('#contactPageSuccessMessage')) {
                 $w('#contactPageSuccessMessage').expand();
                 $w('#contactPageSuccessMessage').show();
             }
+        } catch (e) {}
 
-            // Form alanlarını sıfırla
+        // Form alanlarını sıfırla
+        try {
             if ($w('#contactPageName')) $w('#contactPageName').value = '';
             if ($w('#contactPageEmail')) $w('#contactPageEmail').value = '';
             if ($w('#contactPageUserType')) $w('#contactPageUserType').value = undefined;
             if ($w('#contactPageSubject')) $w('#contactPageSubject').value = undefined;
             if ($w('#contactPageMessage')) $w('#contactPageMessage').value = '';
+        } catch (e) {}
 
-            // Eğer Yönetim Paneli de aynı sayfadaysa hemen tabloyu ve sayaçları güncelle!
-            if ($w('#adminMessagesRepeater') || $w('#adminTotalMessages')) {
-                tabloyuguncelle();
+        // Eğer Yönetim Paneli de aynı sayfadaysa hemen tabloyu ve sayaçları yenile!
+        try {
+            if (typeof window !== 'undefined' && typeof window.tabloyuguncelle === 'function') {
+                window.tabloyuguncelle();
             }
-
-        } catch (error) {
-            console.error('Mesaj iletilirken bağlantı hatası oluştu:', error);
-        }
+        } catch (e) {}
     });
 }
 
@@ -139,19 +153,20 @@ function baslatChatbot() {
         }
     ];
 
-    $w('#chatRepeater').onItemReady(($item, itemData) => {
-        if (itemData.sender === 'user') {
-            $item('#botBubble').collapse();
-            $item('#userBubble').expand();
-            $item('#userText').text = itemData.text;
-        } else {
-            $item('#userBubble').collapse();
-            $item('#botBubble').expand();
-            $item('#botText').html = formatWixChatHtml(itemData.text);
-        }
-    });
-
-    $w('#chatRepeater').data = mesajListesi;
+    try {
+        $w('#chatRepeater').onItemReady(($item, itemData) => {
+            if (itemData.sender === 'user') {
+                $item('#botBubble').collapse();
+                $item('#userBubble').expand();
+                $item('#userText').text = itemData.text;
+            } else {
+                $item('#userBubble').collapse();
+                $item('#botBubble').expand();
+                $item('#botText').html = formatWixChatHtml(itemData.text);
+            }
+        });
+        $w('#chatRepeater').data = mesajListesi;
+    } catch (e) {}
 
     async function soruGonder() {
         const soru = $w('#chatInput').value;
@@ -218,108 +233,144 @@ function baslatChatbot() {
         }
     }
 
-    $w('#chatSendButton').onClick(soruGonder);
-    $w('#chatInput').onKeyPress((event) => {
-        if (event.key === "Enter") {
-            soruGonder();
-        }
-    });
+    try {
+        $w('#chatSendButton').onClick(soruGonder);
+        $w('#chatInput').onKeyPress((event) => {
+            if (event.key === "Enter") {
+                soruGonder();
+            }
+        });
+    } catch (e) {}
 }
 
 
 // ============================================================================
-// 3. YÖNETİM PANELİ (LEAD TAKİP MASASI & DİNAMİK KPI KARTLARI)
+// 3. YÖNETİM PANELİ (LEAD TAKİP MASASI & DİNAMİK KPI SAYAÇLARI)
 // ============================================================================
 export function baslatYonetimPaneli() {
     let tumKayitlar = [];
 
-    // Tablo satırlarını gelen veriyle eşleştiriyoruz
-    if ($w("#adminMessagesRepeater")) {
-        $w("#adminMessagesRepeater").onItemReady(($item, itemData, index) => {
-            if ($item("#adminRowName")) {
-                $item("#adminRowName").text = itemData.fullName || itemData.isim || "Aday";
-            }
-
-            if ($item("#adminRowEmail")) {
-                $item("#adminRowEmail").text = itemData.email || itemData.telefon || "-";
-            }
-
-            if ($item("#adminRowUserType")) {
-                $item("#adminRowUserType").text = itemData.userType || itemData.hedef_rol || "Yeni Mezun";
-            }
-
-            if ($item("#adminRowSubject")) {
-                $item("#adminRowSubject").text = itemData.subject || itemData.konu || "Platform Hakkında";
-            }
-
-            if ($item("#adminRowDate")) {
-                if (itemData.tarih) {
-                    const parca = String(itemData.tarih).slice(0, 10).split('-');
-                    if (parca.length === 3) {
-                        $item("#adminRowDate").text = `${parca[2]}.${parca[1]}.${parca[0]}`;
-                    } else {
-                        $item("#adminRowDate").text = String(itemData.tarih).slice(0, 10);
+    // REPEATER SATIRLARINI BAĞLAMA
+    try {
+        if ($w("#adminMessagesRepeater")) {
+            $w("#adminMessagesRepeater").onItemReady(($item, itemData, index) => {
+                
+                // 1. İsim
+                try {
+                    if ($item("#adminRowName")) {
+                        $item("#adminRowName").text = itemData.fullName || itemData.isim || "Aday";
                     }
-                } else if (itemData._createdDate) {
-                    $item("#adminRowDate").text = new Date(itemData._createdDate).toLocaleDateString('tr-TR');
-                } else {
-                    $item("#adminRowDate").text = "-";
-                }
-            }
+                } catch (e) {}
 
-            // "Detayı Gör >" Butonu
-            if ($item("#adminRowDetailBtn")) {
-                $item("#adminRowDetailBtn").onClick(() => {
-                    const mesajIcerik = itemData.message || itemData.mesaj || "Mesaj içeriği bulunamadı.";
-                    const gonderen = itemData.fullName || itemData.isim || "Aday";
-                    const email = itemData.email || itemData.telefon || "-";
-                    const userType = itemData.userType || itemData.hedef_rol || "Yeni Mezun";
-                    const subject = itemData.subject || itemData.konu || "Platform Hakkında";
-                    const date = $item("#adminRowDate") ? $item("#adminRowDate").text : "-";
-
-                    if ($w("#adminDetailName")) $w("#adminDetailName").text = gonderen;
-                    if ($w("#adminDetailEmail")) $w("#adminDetailEmail").text = email;
-                    if ($w("#adminDetailUserType")) $w("#adminDetailUserType").text = userType;
-                    if ($w("#adminDetailSubject")) $w("#adminDetailSubject").text = subject;
-                    if ($w("#adminDetailDate")) $w("#adminDetailDate").text = date;
-                    if ($w("#adminDetailMessage")) $w("#adminDetailMessage").text = mesajIcerik;
-
-                    if ($w("#adminDetailSection")) {
-                        $w("#adminDetailSection").expand();
-                        $w("#adminDetailSection").show();
-                        $w("#adminDetailSection").scrollTo();
+                // 2. E-posta / İletişim
+                try {
+                    if ($item("#adminRowEmail")) {
+                        $item("#adminRowEmail").text = itemData.email || itemData.telefon || "-";
                     }
-                });
-            }
+                } catch (e) {}
 
-            // "Sil" Butonu
-            if ($item("#adminRowDeleteBtn")) {
-                $item("#adminRowDeleteBtn").onClick(async () => {
-                    if (itemData.id) {
-                        try {
-                            await fetch(`${BACKEND_URL}/api/leads/${itemData.id}`, { method: "DELETE" });
-                        } catch (e) {}
+                // 3. Kullanıcı Tipi
+                try {
+                    if ($item("#adminRowUserType")) {
+                        $item("#adminRowUserType").text = itemData.userType || itemData.hedef_rol || "Yeni Mezun";
                     }
-                    if (itemData._id) {
-                        try {
-                            await wixData.remove("ContactMessages", itemData._id);
-                        } catch (e) {}
+                } catch (e) {}
+
+                // 4. Konu
+                try {
+                    if ($item("#adminRowSubject")) {
+                        $item("#adminRowSubject").text = itemData.subject || itemData.konu || "Platform Hakkında";
                     }
-                    tabloyuguncelle();
-                });
-            }
-        });
+                } catch (e) {}
+
+                // 5. Tarih (GG.AA.YYYY)
+                try {
+                    if ($item("#adminRowDate")) {
+                        if (itemData._createdDate) {
+                            $item("#adminRowDate").text = new Date(itemData._createdDate).toLocaleDateString('tr-TR');
+                        } else if (itemData.tarih) {
+                            const parca = String(itemData.tarih).slice(0, 10).split('-');
+                            $item("#adminRowDate").text = parca.length === 3 ? `${parca[2]}.${parca[1]}.${parca[0]}` : String(itemData.tarih).slice(0, 10);
+                        } else {
+                            $item("#adminRowDate").text = "-";
+                        }
+                    }
+                } catch (e) {}
+
+                // 6. "Detayı Gör >" BUTONU (Tıklanınca aşağıdaki detay kutusunu açar)
+                try {
+                    if ($item("#adminRowDetailBtn")) {
+                        $item("#adminRowDetailBtn").onClick(() => {
+                            const mesajIcerik = itemData.message || itemData.mesaj || "Mesaj içeriği bulunamadı.";
+                            const gonderen = itemData.fullName || itemData.isim || "Aday";
+                            const email = itemData.email || itemData.telefon || "-";
+                            const userType = itemData.userType || itemData.hedef_rol || "Yeni Mezun";
+                            const subject = itemData.subject || itemData.konu || "Platform Hakkında";
+                            const date = $item("#adminRowDate") ? $item("#adminRowDate").text : "-";
+
+                            try {
+                                if ($w("#adminDetailName")) $w("#adminDetailName").text = gonderen;
+                                if ($w("#adminDetailEmail")) $w("#adminDetailEmail").text = email;
+                                if ($w("#adminDetailUserType")) $w("#adminDetailUserType").text = userType;
+                                if ($w("#adminDetailSubject")) $w("#adminDetailSubject").text = subject;
+                                if ($w("#adminDetailDate")) $w("#adminDetailDate").text = date;
+                                if ($w("#adminDetailMessage")) $w("#adminDetailMessage").text = mesajIcerik;
+
+                                if ($w("#adminDetailSection")) {
+                                    $w("#adminDetailSection").expand();
+                                    $w("#adminDetailSection").show();
+                                    $w("#adminDetailSection").scrollTo();
+                                }
+                            } catch (detailErr) {
+                                console.warn("Detay gösterim hatası:", detailErr);
+                            }
+                        });
+                    }
+                } catch (e) {}
+
+                // 7. "Sil" BUTONU (Tıklanınca mesajı silip tabloyu ve kartları yeniler)
+                try {
+                    if ($item("#adminRowDeleteBtn")) {
+                        $item("#adminRowDeleteBtn").onClick(async () => {
+                            // Wix CMS'ten sil
+                            try {
+                                if (itemData._id) {
+                                    await wixData.remove("ContactMessages", itemData._id);
+                                }
+                            } catch (delErr) {
+                                console.warn("Wix CMS silme uyarısı:", delErr);
+                            }
+
+                            // Render backend'den sil
+                            try {
+                                if (itemData.id) {
+                                    await fetch(`${BACKEND_URL}/api/leads/${itemData.id}`, { method: "DELETE" });
+                                }
+                            } catch (beDelErr) {}
+
+                            // Sayfayı ve sayaçları hemen güncelle
+                            tabloyuguncelle();
+                        });
+                    }
+                } catch (e) {}
+
+            });
+        }
+    } catch (repErr) {
+        console.warn("Repeater kurulum hatası:", repErr);
     }
 
-    // Detay panelini kapatma butonu (X)
-    if ($w("#adminDetailCloseBtn") && $w("#adminDetailSection")) {
-        $w("#adminDetailCloseBtn").onClick(() => {
-            $w("#adminDetailSection").hide();
-            $w("#adminDetailSection").collapse();
-        });
-    }
+    // Detay panelini kapatma (X) butonu
+    try {
+        if ($w("#adminDetailCloseBtn") && $w("#adminDetailSection")) {
+            $w("#adminDetailCloseBtn").onClick(() => {
+                $w("#adminDetailSection").hide();
+                $w("#adminDetailSection").collapse();
+            });
+        }
+    } catch (e) {}
 
-    // DİNAMİK KPI KARTLARINI HESAPLAR VE SAYILARI GÜNCELLER
+    // DİNAMİK KPI SAYAÇLARI HESAPLAMA (3 RAKAMLARINI GERÇEK SAYILARLA DEĞİŞTİRİR)
     function metrikleriHesapla(liste) {
         const toplam = liste.length;
         const bugun = new Date();
@@ -331,7 +382,7 @@ export function baslatYonetimPaneli() {
         let bugunSayac = 0;
 
         liste.forEach(item => {
-            const rawDate = item.tarih ? new Date(item.tarih.replace(" ", "T")) : (item._createdDate ? new Date(item._createdDate) : null);
+            const rawDate = item._createdDate ? new Date(item._createdDate) : (item.tarih ? new Date(item.tarih.replace(" ", "T")) : null);
             if (rawDate && !isNaN(rawDate.getTime())) {
                 if (rawDate.getFullYear() === buYil && rawDate.getMonth() === buAy) {
                     buAySayac++;
@@ -345,88 +396,109 @@ export function baslatYonetimPaneli() {
         });
 
         // 1. KART: Toplam Mesaj (#adminTotalMessages)
-        if ($w("#adminTotalMessages")) {
-            $w("#adminTotalMessages").text = String(toplam);
-        }
+        try {
+            if ($w("#adminTotalMessages")) {
+                $w("#adminTotalMessages").text = String(toplam);
+            }
+        } catch (e) {}
 
         // 2. KART: Bu Ay Gelen (#adminMonthMessages)
-        if ($w("#adminMonthMessages")) {
-            $w("#adminMonthMessages").text = String(buAySayac);
-        }
+        try {
+            if ($w("#adminMonthMessages")) {
+                $w("#adminMonthMessages").text = String(buAySayac);
+            }
+        } catch (e) {}
 
         // 3. KART: Bugün Gelen (#adminTodayMessages)
-        if ($w("#adminTodayMessages")) {
-            $w("#adminTodayMessages").text = String(bugunSayac);
-        }
+        try {
+            if ($w("#adminTodayMessages")) {
+                $w("#adminTodayMessages").text = String(bugunSayac);
+            }
+        } catch (e) {}
     }
 
-    // LİSTEYİ VE KARTLARI CANLI RENDER BACKEND'DEN ÇEKİP GÜNCELLER
-    window.tabloyuguncelle = async function() {
-        console.log("Canlı veritabanı sorgulanıyor...");
+    // LİSTEYİ VE KARTLARI GÜNCELLE (WIX CMS ÖNCELİKLİ & RENDER ENTEGRE)
+    async function tabloyuguncelle() {
+        console.log("Kayıtlar Wix CMS üzerinden taranıyor...");
+        let kayitlar = [];
+
+        // 1. Wix CMS (ContactMessages) koleksiyonunu sorgula
         try {
-            const response = await fetch(`${BACKEND_URL}/api/leads`);
-            const sonuc = await response.json();
-            
-            if (sonuc.basari && Array.isArray(sonuc.leadler)) {
-                // Repeater'ın hata vermemesi için her elemana benzersiz _id tanımlıyoruz
-                tumKayitlar = sonuc.leadler.map((item, idx) => ({
-                    ...item,
-                    _id: String(item._id || item.id || ("lead_" + idx))
-                }));
-
-                metrikleriHesapla(tumKayitlar);
-
-                if ($w("#adminMessagesRepeater")) {
-                    $w("#adminMessagesRepeater").data = tumKayitlar;
-                }
-                return;
-            }
-        } catch (backendErr) {
-            console.warn("Backend verisi çekilemedi, Wix CMS deneniyor:", backendErr);
-        }
-
-        // Yedek fallback: Wix CMS
-        try {
-            const wixVerisi = await wixData.query("ContactMessages").descending("_createdDate").find();
-            if (wixVerisi.items.length > 0) {
-                tumKayitlar = wixVerisi.items;
-                metrikleriHesapla(tumKayitlar);
-                if ($w("#adminMessagesRepeater")) {
-                    $w("#adminMessagesRepeater").data = tumKayitlar;
-                }
+            const wixSonuc = await wixData.query("ContactMessages").descending("_createdDate").find();
+            if (wixSonuc && wixSonuc.items && wixSonuc.items.length > 0) {
+                kayitlar = wixSonuc.items;
+                console.log("Wix CMS'ten gelen kayıt sayısı:", kayitlar.length);
             }
         } catch (wixErr) {
-            console.warn("Wix CMS kaydı okunamadı:", wixErr);
+            console.warn("Wix CMS sorgusu hatası:", wixErr);
         }
-    };
 
-    // Arama Kutusu Filtreleme
-    if ($w("#adminSearchInput")) {
-        $w("#adminSearchInput").onInput((event) => {
-            const aranan = event.target.value.toLowerCase().trim();
-            if (!aranan) {
-                if ($w("#adminMessagesRepeater")) $w("#adminMessagesRepeater").data = tumKayitlar;
-                return;
+        // 2. Eğer Wix CMS'te kayıt yoksa veya backend'den de çekmek gerekirse
+        if (kayitlar.length === 0) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/leads`);
+                const sonuc = await response.json();
+                if (sonuc.basari && Array.isArray(sonuc.leadler) && sonuc.leadler.length > 0) {
+                    kayitlar = sonuc.leadler.map((item, idx) => ({
+                        ...item,
+                        _id: String(item._id || item.id || ("lead_" + idx))
+                    }));
+                }
+            } catch (beErr) {
+                console.warn("Backend bağlantı hatası:", beErr);
             }
-            const filtrelenmis = tumKayitlar.filter(item => {
-                const ad = (item.fullName || item.isim || "").toLowerCase();
-                const email = (item.email || item.telefon || "").toLowerCase();
-                const tip = (item.userType || item.hedef_rol || "").toLowerCase();
-                const konu = (item.subject || item.konu || "").toLowerCase();
-                const msg = (item.message || item.mesaj || "").toLowerCase();
-                return ad.includes(aranan) || email.includes(aranan) || tip.includes(aranan) || konu.includes(aranan) || msg.includes(aranan);
-            });
-            if ($w("#adminMessagesRepeater")) $w("#adminMessagesRepeater").data = filtrelenmis;
-        });
+        }
+
+        tumKayitlar = kayitlar;
+        
+        // Sayaçları ve Repeater'ı güncelle
+        metrikleriHesapla(tumKayitlar);
+
+        try {
+            if ($w("#adminMessagesRepeater")) {
+                $w("#adminMessagesRepeater").data = tumKayitlar;
+            }
+        } catch (repDataErr) {
+            console.warn("Repeater veri aktarımı uyarısı:", repDataErr);
+        }
     }
+
+    // Global erişim için fonksiyonu pencereye bağlıyoruz
+    if (typeof window !== 'undefined') {
+        window.tabloyuguncelle = tabloyuguncelle;
+    }
+
+    // Canlı Arama Kutusu Filtreleme
+    try {
+        if ($w("#adminSearchInput")) {
+            $w("#adminSearchInput").onInput((event) => {
+                const q = event.target.value.toLowerCase().trim();
+                if (!q) {
+                    if ($w("#adminMessagesRepeater")) $w("#adminMessagesRepeater").data = tumKayitlar;
+                    return;
+                }
+                const f = tumKayitlar.filter(it => {
+                    const ad = (it.fullName || it.isim || "").toLowerCase();
+                    const em = (it.email || it.telefon || "").toLowerCase();
+                    const rol = (it.userType || it.hedef_rol || "").toLowerCase();
+                    const konu = (it.subject || it.konu || "").toLowerCase();
+                    const msg = (it.message || it.mesaj || "").toLowerCase();
+                    return ad.includes(q) || em.includes(q) || rol.includes(q) || konu.includes(q) || msg.includes(q);
+                });
+                if ($w("#adminMessagesRepeater")) $w("#adminMessagesRepeater").data = f;
+            });
+        }
+    } catch (e) {}
 
     // Yenile Butonu
-    if ($w("#adminRefreshButton")) {
-        $w("#adminRefreshButton").onClick(() => {
-            window.tabloyuguncelle();
-        });
-    }
+    try {
+        if ($w("#adminRefreshButton")) {
+            $w("#adminRefreshButton").onClick(() => {
+                tabloyuguncelle();
+            });
+        }
+    } catch (e) {}
 
-    // İlk açılışta verileri çek
-    window.tabloyuguncelle();
+    // Sayfa açılır açılmaz verileri çek ve göster!
+    tabloyuguncelle();
 }
