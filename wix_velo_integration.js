@@ -250,12 +250,12 @@ function baslatChatbot() {
 export function baslatYonetimPaneli() {
     let tumKayitlar = [];
 
-    // Detay panelini başlangıçta kapalı tut
+    // Detay panelini başlangıçta SIFIR PİKSEL YAP (collapse)
     try {
         const c = $w('#adminMessageDetailContainer');
         if (c) {
+            try { c.show(); } catch (e) {}
             try { c.collapse(); } catch (e) {}
-            try { c.hide(); } catch (e) {}
         }
     } catch (e) {}
 
@@ -415,7 +415,6 @@ export function baslatYonetimPaneli() {
                     try {
                         const p = $w("#adminMessageDetailContainer");
                         if (p) {
-                            try { await p.hide(); } catch (e) {}
                             try { await p.collapse(); } catch (e) {}
                         }
                     } catch (e) {}

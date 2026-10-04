@@ -46,12 +46,13 @@ let tumKayitlar = [];
 $w.onReady(function () {
     console.log("PRUVAI Yönetici Paneli Başlatılıyor...");
 
-    // Sayfa açıldığında detay kutusu kapalı başlasın
+    // Sayfa açıldığında detay kutusunu SIFIR PİKSEL YAP (collapse)
+    // Böylece sayfa gereksiz yere uzamaz, altta beyaz boşluk kalmaz!
     try {
         const container = $w('#adminMessageDetailContainer');
         if (container) {
+            try { container.show(); } catch (e) {}
             try { container.collapse(); } catch (e) {}
-            try { container.hide(); } catch (e) {}
         }
     } catch (e) {}
 
@@ -258,13 +259,14 @@ async function mesajDetayiniGoster(itemData) {
 
 
 /**
- * MESAJ DETAYINI KAPATIR
+ * MESAJ DETAYINI KAPATIR (SAYFA OTOMATİK ESKİ BOYUNA KISALIR)
  */
 async function detayiKapat() {
     try {
         const container = $w('#adminMessageDetailContainer');
         if (container) {
-            try { await container.hide(); } catch (e) {}
+            // SADECE collapse() kullanılır! 
+            // hide() beyaz boşluk bırakırken, collapse() o alanı 0 piksel yapar ve sayfayı yukarı toplar.
             try { await container.collapse(); } catch (e) {}
         }
     } catch (e) {}
