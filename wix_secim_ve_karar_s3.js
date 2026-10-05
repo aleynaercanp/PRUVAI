@@ -1,61 +1,43 @@
 /**
  * PRUVAI — Wix Studio "Seçim ve Karar / S3" Senaryo Sayfa Kodu
  * 
- * Bu kod, adayın yazdığı cevabı AI ile analiz eder, puanlar ve
- * Güçlü Yönler ile Gelişim Alanları geri bildirimlerini dinamik olarak ekrana basar.
- * 
- * KULLANILAN ELEMAN ID'LERİ:
+ * BİREBİR EŞLEŞEN ID'LER:
  * -------------------------------------------------------------
- * 1. Cevap Giriş Alanı:
- *    - #answerInput           (Adayın cevabını yazdığı çok satırlı metin kutusu)
+ * 1. Buton ID:
+ *    - #avaluateButton        ("Gönder ve Değerlendir" Butonu)
  * 
- * 2. Buton:
- *    - #evaluateButton        ("Gönder ve Değerlendir" butonu)
- *      (Not: Kod alternatif olarak #btnEvaluate, #submitButton, #button1'i de destekler)
+ * 2. AI Konteynır ID:
+ *    - #aiResultBox           (Turuncu Çerçeveli AI Değerlendirme Kutusu)
  * 
- * 3. AI Değerlendirme Konteynırı (Başlangıçta KAPALI):
- *    - #aiEvaluationContainer (Turuncu çerçeveli tüm değerlendirme kutusu)
- *      (Not: Kod alternatif olarak #evaluationContainer, #aiBox, #box1'i de destekler)
- * 
- * 4. Sonuç Alanları:
- *    - #scoreText             ("-" alanındaki puan, örn: 85)
+ * 3. Girdi ve Çıktı Alanları:
+ *    - #answerInput           (Adayın cevabını yazdığı metin kutusu)
+ *    - #scoreText             ("-" alanındaki puan, örn: 88)
  *    - #strengthsText         (Güçlü Yönler metni)
  *    - #developmentText       (Gelişim Alanı metni)
  */
 
 import { fetch } from 'wix-fetch';
 
-// Canlı Python Render Backend URL
+// Canlı Render Backend URL
 const BACKEND_URL = "https://pruvai-backend.onrender.com";
 
 $w.onReady(function () {
-    console.log("PRUVAI Seçim ve Karar / S3 Sayfası Yüklendi.");
+    console.log("PRUVAI Seçim ve Karar / S3 Sayfası Başlatılıyor...");
 
-    // 1. Sayfa ilk açıldığında AI Değerlendirme kutusunu SIFIR PİKSEL (collapse) yap
-    // Böylece sayfa başlangıçta tertemiz ve kısa kalır, beyaz boşluk oluşmaz.
+    // 1. Sayfa açıldığında AI Değerlendirme kutusunu SIFIR PİKSEL YAP (collapse)
+    // Beyaz boşluk bırakmaz, sayfa tam butonun altında biter.
     degerlendirmeKutusunuKapat();
 
-    // 2. "Gönder ve Değerlendir" Butonunu Bağla
-    const olasiButonlar = [
-        "#evaluateButton", 
-        "#btnEvaluate", 
-        "#gonderVeDegerlendirBtn", 
-        "#submitButton", 
-        "#btnGonder", 
-        "#button1", 
-        "#button2"
-    ];
-
-    for (let bId of olasiButonlar) {
-        try {
-            const btn = $w(bId);
-            if (btn && typeof btn.onClick === 'function') {
-                btn.onClick(async () => {
-                    await cevabiDegerlendir();
-                });
-                break;
-            }
-        } catch (e) {}
+    // 2. "Gönder ve Değerlendir" Butonunu (#avaluateButton) Dinle
+    try {
+        const btn = $w("#avaluateButton") || $w("#evaluateButton");
+        if (btn && typeof btn.onClick === 'function') {
+            btn.onClick(async () => {
+                await cevabiDegerlendir();
+            });
+        }
+    } catch (e) {
+        console.warn("Buton bağlama uyarısı:", e);
     }
 });
 
@@ -64,26 +46,34 @@ $w.onReady(function () {
  * AI Değerlendirme Kutusunu Başlangıçta Kapatır (Collapse)
  */
 function degerlendirmeKutusunuKapat() {
-    const olasiKutular = [
-        "#aiEvaluationContainer", 
-        "#evaluationContainer", 
-        "#aiResultBox", 
-        "#evaluationBox", 
-        "#aiBox", 
-        "#boxEvaluation", 
-        "#box1", 
-        "#box2", 
-        "#container1"
-    ];
+    try {
+        const c = $w('#aiResultBox') || $w('#aiEvaluationContainer');
+        if (c) {
+            try { c.show(); } catch (e) {}
+            try { c.collapse(); } catch (e) {}
+        }
+    } catch (e) {}
+}
 
-    for (let cId of olasiKutular) {
-        try {
-            const c = $w(cId);
-            if (c) {
-                if (typeof c.collapse === 'function') c.collapse();
-                if (typeof c.hide === 'function') c.hide();
-            }
-        } catch (e) {}
+
+/**
+ * AI Değerlendirme Kutusunu Açar ve Sayfayı Aşağı Kaydırır (Expand & ScrollTo)
+ */
+async function degerlendirmeKutusunuAc() {
+    try {
+        const c = $w('#aiResultBox') || $w('#aiEvaluationContainer');
+        if (c) {
+            try { await c.show(); } catch (e) {}
+            try { await c.expand(); } catch (e) {}
+
+            setTimeout(() => {
+                try {
+                    if (typeof c.scrollTo === 'function') c.scrollTo();
+                } catch (e) {}
+            }, 80);
+        }
+    } catch (e) {
+        console.warn("Kutu açma hatası:", e);
     }
 }
 
@@ -92,47 +82,42 @@ function degerlendirmeKutusunuKapat() {
  * Cevabı Alır, Canlı AI ile Değerlendirir ve Sonuçları Gösterir
  */
 async function cevabiDegerlendir() {
-    // 1. Kullanıcının yazdığı cevabı oku
+    // 1. Kutuyu KESİNLİKLE AÇ (kullanıcı tıkladığı anda açılsın)
+    await degerlendirmeKutusunuAc();
+
+    // 2. Kullanıcının yazdığı cevabı oku
     let cevapMetni = "";
     try {
         if ($w('#answerInput')) {
-            cevapMetni = ($w('#answerInput').value || "").trim();
+            cevapMetni = ($w('#answerInput').value || $w('#answerInput').text || "").trim();
         }
     } catch (e) {}
 
-    // Boş cevap kontrolü
+    // Eğer kullanıcı henüz bir şey yazmadıysa kutuyu aç ve yönlendirici mesaj ver
     if (!cevapMetni) {
-        try {
-            if ($w('#answerInput')) {
-                $w('#answerInput').placeholder = "Lütfen önce hangi adayı neden seçtiğinizi yazınız...";
-            }
-        } catch (e) {}
+        try { if ($w('#scoreText')) $w('#scoreText').text = "-"; } catch (e) {}
+        try { if ($w('#strengthsText')) $w('#strengthsText').text = "Lütfen yukarıdaki kutuya hangi adayla (Kerem veya Ece) neden ilerlemek istediğinizi yazınız."; } catch (e) {}
+        try { if ($w('#developmentText')) $w('#developmentText').text = "Cevabınızı girdikten sonra yapay zekâ yetkinlik analizinizi oluşturacaktır."; } catch (e) {}
+        try { if ($w('#answerInput')) $w('#answerInput').focus(); } catch (e) {}
         return;
     }
 
-    // 2. Buton durumunu 'Değerlendiriliyor' yap
+    // 3. Buton durumunu 'Değerlendiriliyor' yap
     let aktifButon = null;
-    const olasiButonlar = ["#evaluateButton", "#btnEvaluate", "#gonderVeDegerlendirBtn", "#submitButton", "#button1"];
-    for (let bId of olasiButonlar) {
-        try {
-            const b = $w(bId);
-            if (b && typeof b.label !== 'undefined') {
-                aktifButon = b;
-                b.label = "Değerlendiriliyor... ⏳";
-                break;
-            }
-        } catch (e) {}
-    }
+    try {
+        const b = $w("#avaluateButton") || $w("#evaluateButton");
+        if (b && typeof b.label !== 'undefined') {
+            aktifButon = b;
+            b.label = "Değerlendiriliyor... ⏳";
+        }
+    } catch (e) {}
 
     // Yükleniyor durumunu alanlara önceden yaz
     try { if ($w('#scoreText')) $w('#scoreText').text = ".."; } catch (e) {}
-    try { if ($w('#strengthsText')) $w('#strengthsText').text = "Yapay zekâ adayın yetkinlik eşleşmesini inceliyor..."; } catch (e) {}
-    try { if ($w('#developmentText')) $w('#developmentText').text = "Pozisyon dinamiklerine göre gelişim önerisi hazırlanıyor..."; } catch (e) {}
+    try { if ($w('#strengthsText')) $w('#strengthsText').text = "Yapay zekâ yetkinlik analizini hazırlıyor..."; } catch (e) {}
+    try { if ($w('#developmentText')) $w('#developmentText').text = "Pozisyon dinamiklerine göre gelişim önerisi inceleniyor..."; } catch (e) {}
 
-    // Kutuyu önceden genişletip ekrana kaydır
-    await degerlendirmeKutusunuAc();
-
-    // 3. Canlı Render Backend'e AI Değerlendirme İsteği Gönder
+    // 4. Canlı Render Backend'e AI Değerlendirme İsteği Gönder
     let degerlendirme = null;
     try {
         const response = await fetch(`${BACKEND_URL}/api/degerlendir`, {
@@ -154,34 +139,31 @@ async function cevabiDegerlendir() {
         console.warn("Backend API bağlantı uyarısı (Yedek analize geçiliyor):", apiErr);
     }
 
-    // 4. Eğer API gecikirse veya bağlantı sağlanamazsa devrede olan Akıllı Yerel İK Motoru
+    // 5. API gecikirse veya bağlantı sağlanamazsa devrede olan Akıllı Yerel İK Motoru
     if (!degerlendirme) {
         degerlendirme = akilliYerelDegerlendirme(cevapMetni);
     }
 
-    // 5. SONUÇLARI İLGİLİ ELEMANLARA YAZ:
-    // Puan (#scoreText)
+    // 6. SONUÇLARI İLGİLİ ELEMANLARA YAZ:
     try {
         if ($w('#scoreText')) {
             $w('#scoreText').text = String(degerlendirme.puan);
         }
     } catch (e) {}
 
-    // Güçlü Yönler (#strengthsText)
     try {
         if ($w('#strengthsText')) {
             $w('#strengthsText').text = String(degerlendirme.guclu_yonler);
         }
     } catch (e) {}
 
-    // Gelişim Alanı (#developmentText)
     try {
         if ($w('#developmentText')) {
             $w('#developmentText').text = String(degerlendirme.gelisim_alanlari);
         }
     } catch (e) {}
 
-    // 6. Buton yazısını eski haline getir
+    // 7. Buton yazısını eski haline getir
     if (aktifButon) {
         aktifButon.label = "Gönder ve Değerlendir ✈";
     }
@@ -191,43 +173,7 @@ async function cevabiDegerlendir() {
 
 
 /**
- * AI Değerlendirme Kutusunu Açar ve Sayfayı Aşağı Kaydırır (Expand & ScrollTo)
- */
-async function degerlendirmeKutusunuAc() {
-    const olasiKutular = [
-        "#aiEvaluationContainer", 
-        "#evaluationContainer", 
-        "#aiResultBox", 
-        "#evaluationBox", 
-        "#aiBox", 
-        "#boxEvaluation", 
-        "#box1", 
-        "#box2", 
-        "#container1"
-    ];
-
-    for (let cId of olasiKutular) {
-        try {
-            const c = $w(cId);
-            if (c) {
-                if (typeof c.show === 'function') await c.show();
-                if (typeof c.expand === 'function') await c.expand();
-
-                // Sayfayı yeni açılan kutuya doğru kaydır
-                setTimeout(() => {
-                    try {
-                        if (typeof c.scrollTo === 'function') c.scrollTo();
-                    } catch (e) {}
-                }, 80);
-                break;
-            }
-        } catch (e) {}
-    }
-}
-
-
-/**
- * Akıllı Yedek İK Değerlendirme Motoru (Offline / Hızlı Yanıt Koruması)
+ * Akıllı Yedek İK Değerlendirme Motoru (Kesintisiz Yanıt Garantisi)
  */
 function akilliYerelDegerlendirme(cevap) {
     const lower = cevap.toLowerCase();
@@ -267,7 +213,11 @@ function akilliYerelDegerlendirme(cevap) {
 }
 
 
-// Wix Studio Properties Panelinde "onClick" event'i oluşturulmuşsa çalışan yedek handler
+// Wix Studio Properties Panelinde "onClick" event'i oluşturulmuşsa çalışan handler'lar
+export async function avaluateButton_click(event) {
+    await cevabiDegerlendir();
+}
+
 export async function evaluateButton_click(event) {
     await cevabiDegerlendir();
 }
