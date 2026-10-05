@@ -57,14 +57,18 @@ $w.onReady(function () {
  * S3 Rozetlerini Turuncudan "Tamamlandı" (Yeşil) Haline Getirir (#box247 ve #box251)
  */
 function s3DurumunuTamamla() {
-    // 1. #box247: S3 Kare Rozeti (Turuncudan Açık Yeşile)
+    console.log("S3 rozetleri güncelleniyor (#box247 ve #box251)...");
+
+    // 1. #box247: S3 Rozeti Arka Planı ve Stili
     try {
         const boxS3 = $w('#box247');
         if (boxS3) {
-            boxS3.style.backgroundColor = "#C7F5EC"; // Açık nane yeşili
-            boxS3.style.borderColor = "transparent";
+            try { boxS3.style.backgroundColor = "#C7F5EC"; } catch (e) {}
+            try { boxS3.style.borderColor = "transparent"; } catch (e) {}
+            // Eğer buton ise
+            try { if (typeof boxS3.label !== 'undefined') boxS3.label = "S3"; } catch (e) {}
 
-            // İçindeki "S3" metnini koyu teal renk yap
+            // İçindeki elemanlar varsa
             if (boxS3.children && Array.isArray(boxS3.children)) {
                 boxS3.children.forEach(child => {
                     try {
@@ -79,23 +83,22 @@ function s3DurumunuTamamla() {
         console.warn("#box247 güncellenirken uyarı:", err247);
     }
 
-    // 2. #box251: Kapsül Rozet ("Başlanmadı" -> "Tamamlandı")
+    // 2. #box251: Kapsül Rozet Arka Planı ve Stili
     try {
         const boxStatus = $w('#box251');
         if (boxStatus) {
-            boxStatus.style.backgroundColor = "#D4F8F0"; // Açık yeşil arka plan
-            boxStatus.style.borderColor = "transparent";
+            try { boxStatus.style.backgroundColor = "#D4F8F0"; } catch (e) {}
+            try { boxStatus.style.borderColor = "transparent"; } catch (e) {}
+            // Eğer buton ise
+            try { if (typeof boxStatus.label !== 'undefined') boxStatus.label = "Tamamlandı"; } catch (e) {}
 
-            // İçindeki elemanları (metin ve ikon) yeşil 'Tamamlandı' haline çevir
             if (boxStatus.children && Array.isArray(boxStatus.children)) {
                 boxStatus.children.forEach(child => {
                     try {
-                        // Metin elemanı ise "Tamamlandı" yap ve koyu yeşil renk ver
                         if (typeof child.text !== 'undefined') {
                             child.text = "Tamamlandı";
                             child.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
                         }
-                        // İkon elemanı ise saati yeşil onay (checkmark) ikonuna çevir
                         if (child.type === "$w.VectorImage" || (child.id && child.id.toLowerCase().includes("vector"))) {
                             try {
                                 child.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
@@ -109,7 +112,29 @@ function s3DurumunuTamamla() {
         console.warn("#box251 güncellenirken uyarı:", err251);
     }
 
-    // Kalıcı olması için hafızaya kaydet
+    // 3. DOĞRUDAN METİN ELEMANLARINI TARA: "Başlanmadı" yazısını bul ve "Tamamlandı" yap
+    try {
+        $w("Text").forEach(el => {
+            try {
+                if (el && el.text) {
+                    const txt = el.text.trim();
+                    if (txt === "Başlanmadı" || txt.includes("Başlanmadı")) {
+                        el.text = "Tamamlandı";
+                        try {
+                            el.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
+                        } catch (e) {}
+                    }
+                    if (txt === "S3") {
+                        try {
+                            el.html = `<h3 style="color:#003831; font-weight:800; margin:0; text-align:center;">S3</h3>`;
+                        } catch (e) {}
+                    }
+                }
+            } catch (e) {}
+        });
+    } catch (e) {}
+
+    // 4. Durumu kalıcı kaydet
     try {
         if (local) local.setItem('s3_durumu', 'tamamlandi');
     } catch (e) {}
