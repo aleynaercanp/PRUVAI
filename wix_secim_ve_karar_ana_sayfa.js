@@ -93,11 +93,12 @@ function kartDurumunuTamamlandiYap() {
         }
     } catch (e) {}
 
-    // 4. vectorImage120 ikonu onay ikonuna (vectorImage117 gibi) dönüşsün
+    // 4. vectorImage120 ikonu ONAY (İçi boş yuvarlaklı checkmark - vectorImage117 gibi) ikonuna dönüşsün
     try {
         const vectorImage120 = $w('#vectorImage120');
         if (vectorImage120) {
-            vectorImage120.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
+            // İçi boş daireli (outlined) checkmark SVG'si
+            vectorImage120.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8z"/></svg>`;
         }
     } catch (e) {}
 
@@ -107,6 +108,27 @@ function kartDurumunuTamamlandiYap() {
         if (text102) {
             text102.text = "Tamamlandı";
             text102.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
+        }
+    } catch (e) {}
+
+    // 6. text98 skor alanını güncelle ("84 / 100" gibi)
+    try {
+        const puan = sessionOku('s3_puan') || "100";
+        const text98 = $w('#text98');
+        if (text98) {
+            text98.text = `${puan} / 100`;
+            text98.html = `<h4 style="color:#000000; font-weight:800; margin:0; text-align:center;">${puan} / 100</h4>`;
+        }
+    } catch (e) {}
+
+    // 7. button15 durumunu button14 gibi yap (Cevabı Gör -> Beyaz arka plan, koyu metin)
+    try {
+        const button15 = $w('#button15');
+        if (button15) {
+            button15.label = "Cevabı Gör →";
+            button15.style.backgroundColor = "#FFFFFF";
+            button15.style.color = "#000000"; // veya #003831
+            button15.style.borderColor = "#D3D3D3";
         }
     } catch (e) {}
 }
