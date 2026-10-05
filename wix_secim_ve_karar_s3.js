@@ -14,7 +14,12 @@
  *    - #avaluateButton        ("Gönder ve Değerlendir" Butonu)
  *    - #aiResultBox           (Turuncu Çerçeveli AI Değerlendirme Kutusu)
  * 
- * 3. Girdi ve Çıktı Alanları:
+ * 3. Dinamik Senaryo ve Durum Konteynırları:
+ *    - #button7               (Yukarıdaki Buton -> Tıklandığında senaryo bittiyse box257'yi günceller)
+ *    - #box257                (Güncellenecek Konteynır -> Tamamlandıysa box253 gibi görünür)
+ *    - #box253                (Örnek Tamamlanmış Yeşil Konteynır)
+ * 
+ * 4. Girdi ve Çıktı Alanları:
  *    - #answerInput           (Adayın cevabını yazdığı metin kutusu)
  *    - #scoreText             ("-" alanındaki puan, örn: 88)
  *    - #strengthsText         (Güçlü Yönler metni)
@@ -22,15 +27,26 @@
  */
 
 import { fetch } from 'wix-fetch';
+import { local } from 'wix-storage-frontend';
 
 // Canlı Python Render Backend URL
 const BACKEND_URL = "https://pruvai-backend.onrender.com";
 
+// Senaryo tamamlanma durumu
+let isTamamlandi = false;
+
 $w.onReady(function () {
     console.log("PRUVAI Seçim ve Karar / S3 Sayfası Başlatılıyor...");
 
-    // 1. Sayfa ilk açıldığında AI Değerlendirme kutusunu SIFIR PİKSEL YAP (collapse)
-    // Böylece sayfa açıldığında KUTU KAPALI BAŞLAR!
+    // 1. Daha önce tamamlandıysa durumu hatırla ve rozetleri yeşil yap
+    try {
+        if (local && local.getItem('s3_durumu') === 'tamamlandi') {
+            isTamamlandi = true;
+            s3DurumunuTamamla();
+        }
+    } catch (e) {}
+
+    // 2. Sayfa ilk açıldığında AI Değerlendirme kutusunu SIFIR PİKSEL YAP (collapse)
     try {
         const c = $w('#aiResultBox');
         if (c) {
@@ -39,7 +55,7 @@ $w.onReady(function () {
         }
     } catch (e) {}
 
-    // 2. "Gönder ve Değerlendir" Butonunu (#avaluateButton) Dinle
+    // 3. "Gönder ve Değerlendir" Butonunu (#avaluateButton) Dinle
     try {
         const btn = $w("#avaluateButton") || $w("#evaluateButton");
         if (btn && typeof btn.onClick === 'function') {
@@ -48,7 +64,19 @@ $w.onReady(function () {
             });
         }
     } catch (e) {
-        console.warn("Buton bağlama uyarısı:", e);
+        console.warn("Değerlendir butonu bağlama uyarısı:", e);
+    }
+
+    // 4. Yukarıdaki #button7 Butonunu Dinle (Tamamlandıysa box257'yi box253 gibi yapar)
+    try {
+        const btn7 = $w("#button7");
+        if (btn7 && typeof btn7.onClick === 'function') {
+            btn7.onClick(() => {
+                handleButton7Click();
+            });
+        }
+    } catch (e) {
+        console.warn("button7 bağlama uyarısı:", e);
     }
 });
 
@@ -81,6 +109,10 @@ function yesilBoya(el, derinlik) {
  */
 function s3DurumunuTamamla() {
     console.log("S3 rozetleri yeşile çevriliyor...");
+    isTamamlandi = true;
+    try {
+        if (local) local.setItem('s3_durumu', 'tamamlandi');
+    } catch (e) {}
 
     // 1. "S3" METNİ (#text94): Koyu teal renk yap
     try {
@@ -169,6 +201,102 @@ function s3DurumunuTamamla() {
             } catch (e) {}
         });
     } catch (e) {}
+}
+
+
+/**
+ * #box257 Konteynırını #box253'ün Yeşil / Tamamlandı Görünümüne Çevirir
+ */
+function box257yiBox253Yap() {
+    console.log("box257 konteynırı box253 görünümüne dönüştürülüyor...");
+
+    try {
+        const b257 = $w('#box257');
+        if (!b257) {
+            console.warn("#box257 elemanı sayfada bulunamadı.");
+            return;
+        }
+
+        // 1. #box253'ün arkaplan veya stil bilgilerini al (sayfada mevcutsa)
+        let hedefBg = "rgba(212, 248, 240, 1)"; // Açık nane yeşili
+        try {
+            const b253 = $w('#box253');
+            if (b253 && b253.style && b253.style.backgroundColor) {
+                hedefBg = b253.style.backgroundColor;
+            }
+        } catch (e) {}
+
+        // 2. #box257 ve iç içe alt kutuları yeşile boya
+        try { b257.style.backgroundColor = hedefBg; } catch (e) {}
+        try { b257.style.borderColor = "transparent"; } catch (e) {}
+        yesilBoya(b257, 0);
+
+        // 3. #box257 içindeki alt elemanları (metinler, butonlar, ikonlar) tara ve güncelle
+        const elemanlariGuncelle = (el) => {
+            if (!el) return;
+
+            // Metin alanı ise
+            if (typeof el.text !== 'undefined') {
+                const txt = (el.text || "").trim();
+                if (txt === "Başlanmadı" || txt.includes("Başlanmadı")) {
+                    el.text = "Tamamlandı";
+                    try {
+                        el.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
+                    } catch (e) {}
+                } else if (/S[1-9]/i.test(txt)) {
+                    try {
+                        el.html = `<h3 style="color:#003831; font-weight:800; margin:0; text-align:center;">${txt}</h3>`;
+                    } catch (e) {}
+                }
+            }
+
+            // Buton ise
+            if (typeof el.label !== 'undefined') {
+                if (el.label.includes("Başlanmadı")) {
+                    el.label = "Tamamlandı";
+                }
+            }
+
+            // İkon / Vector Image ise yeşil onay (checkmark) ikonuna çevir
+            if (el.type === "$w.VectorImage" || (el.id && el.id.toLowerCase().includes("vector"))) {
+                try {
+                    el.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
+                } catch (e) {}
+            }
+
+            // İçindeki alt elemanları özyinelemeli güncelle
+            if (el.children && Array.isArray(el.children)) {
+                el.children.forEach(c => elemanlariGuncelle(c));
+            }
+        };
+
+        elemanlariGuncelle(b257);
+
+    } catch (err257) {
+        console.warn("box257 dönüştürülürken hata:", err257);
+    }
+}
+
+
+/**
+ * Yukarıdaki button7 tıklandığında tetiklenir:
+ * Eğer değerlendirme tamamlandıysa box257'yi box253 gibi yapar.
+ */
+function handleButton7Click() {
+    let tamamlandi = isTamamlandi;
+    try {
+        if (!tamamlandi && typeof local !== 'undefined' && local.getItem('s3_durumu') === 'tamamlandi') {
+            tamamlandi = true;
+            isTamamlandi = true;
+        }
+    } catch (e) {}
+
+    if (tamamlandi) {
+        console.log("button7 tıklandı: Senaryo tamamlandığı için box257 kutusu box253 gibi yapılıyor...");
+        box257yiBox253Yap();
+    } else {
+        console.log("button7 tıklandı: Senaryo henüz tamamlanmadığı için box257 değiştirilmedi.");
+    }
 }
 
 
@@ -330,3 +458,8 @@ export async function avaluateButton_click(event) {
 export async function evaluateButton_click(event) {
     await cevabiDegerlendir();
 }
+
+export function button7_click(event) {
+    handleButton7Click();
+}
+
