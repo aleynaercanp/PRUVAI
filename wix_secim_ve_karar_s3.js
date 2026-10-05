@@ -3,50 +3,41 @@
  * 
  * BİREBİR EŞLEŞEN TÜM ID'LER:
  * -------------------------------------------------------------
- * 1. Üst Rozet Elemanları:
- *    - #box247                (S3 Kare Kutusu -> Yeşile döner)
- *    - #text94                ("S3" Metni -> Koyu renge döner)
- *    - #box251                (Dış Kapsül Kutusu -> Yeşile döner)
- *    - #box262                ("Başlanmadı" Butonu/Metni -> "Tamamlandı" olur)
- *    - #vectorImage126        (Saat İkonu -> Yeşil Onay/Checkmark olur)
+ * 1. S3 Kartı ve Dönüştürülecek Elemanlar (İkinci Resim):
+ *    - #box257                (S3 Senaryo Kartı -> #box253 gibi olur)
+ *    - #box252                (S3 Sol Rozet Kutusu)
+ *    - #text97                (S3 Başlık / Metin Alanı)
+ *    - #box255                ("Başlanmadı" Konteynırı -> #box251 nane yeşili konteynırın aynısı olur)
+ *    - #text102               ("Başlanmadı" Metni -> #text95 "Tamamlandı" metninin aynısı olur)
+ *    - #vectorImage120        (Saat İkonu -> #vectorImage117 Yeşil Onay/Tik ikonunun aynısı olur)
+ *    - #text98                ("-" Puan Alanı -> #scoreText AI Puanı gelir)
+ *    - #button15              ("Senaryoyu Başlat" Butonu -> #button14 butonunun aynısı olur)
  * 
- * 2. Buton ve AI Konteynırı:
+ * 2. Referans S2 Elemanları (Kopyalanacak Şablon):
+ *    - #box253                (S2 Tamamlanmış Kart)
+ *    - #box251                (S2 "Tamamlandı" Yeşil Konteynırı)
+ *    - #text95                (S2 "Tamamlandı" Metni)
+ *    - #vectorImage117        (S2 Yeşil Tik İkonu)
+ *    - #button14              (S2 Butonu)
+ * 
+ * 3. AI Değerlendirme ve Form Elemanları:
  *    - #avaluateButton        ("Gönder ve Değerlendir" Butonu)
- *    - #aiResultBox           (Turuncu Çerçeveli AI Değerlendirme Kutusu)
- * 
- * 3. Dinamik Senaryo ve Durum Konteynırları:
- *    - #button7               (Yukarıdaki Buton -> Tıklandığında senaryo bittiyse box257'yi günceller)
- *    - #box257                (Güncellenecek Konteynır -> Tamamlandıysa box253 gibi görünür)
- *    - #box253                (Örnek Tamamlanmış Yeşil Konteynır)
- * 
- * 4. Girdi ve Çıktı Alanları:
- *    - #answerInput           (Adayın cevabını yazdığı metin kutusu)
- *    - #scoreText             ("-" alanındaki puan, örn: 88)
+ *    - #aiResultBox           (Turuncu Çerçeveli AI Değerlendirme Konteynırı)
+ *    - #answerInput           (Adayın cevabını yazdığı input alanı)
+ *    - #scoreText             (AI Değerlendirme Puanı, örn: 88)
  *    - #strengthsText         (Güçlü Yönler metni)
  *    - #developmentText       (Gelişim Alanı metni)
  */
 
 import { fetch } from 'wix-fetch';
-import { local } from 'wix-storage-frontend';
 
 // Canlı Python Render Backend URL
 const BACKEND_URL = "https://pruvai-backend.onrender.com";
 
-// Senaryo tamamlanma durumu
-let isTamamlandi = false;
-
 $w.onReady(function () {
     console.log("PRUVAI Seçim ve Karar / S3 Sayfası Başlatılıyor...");
 
-    // 1. Daha önce tamamlandıysa durumu hatırla ve rozetleri yeşil yap
-    try {
-        if (local && local.getItem('s3_durumu') === 'tamamlandi') {
-            isTamamlandi = true;
-            s3DurumunuTamamla();
-        }
-    } catch (e) {}
-
-    // 2. Sayfa ilk açıldığında AI Değerlendirme kutusunu SIFIR PİKSEL YAP (collapse)
+    // 1. Sayfa ilk açıldığında AI Değerlendirme kutusunu gizle/kapat (collapse)
     try {
         const c = $w('#aiResultBox');
         if (c) {
@@ -55,7 +46,7 @@ $w.onReady(function () {
         }
     } catch (e) {}
 
-    // 3. "Gönder ve Değerlendir" Butonunu (#avaluateButton) Dinle
+    // 2. "Gönder ve Değerlendir" Butonunu (#avaluateButton) Dinle
     try {
         const btn = $w("#avaluateButton") || $w("#evaluateButton");
         if (btn && typeof btn.onClick === 'function') {
@@ -64,28 +55,15 @@ $w.onReady(function () {
             });
         }
     } catch (e) {
-        console.warn("Değerlendir butonu bağlama uyarısı:", e);
-    }
-
-    // 4. Yukarıdaki #button7 Butonunu Dinle (Tamamlandıysa box257'yi box253 gibi yapar)
-    try {
-        const btn7 = $w("#button7");
-        if (btn7 && typeof btn7.onClick === 'function') {
-            btn7.onClick(() => {
-                handleButton7Click();
-            });
-        }
-    } catch (e) {
-        console.warn("button7 bağlama uyarısı:", e);
+        console.warn("Buton bağlama uyarısı:", e);
     }
 });
 
 
 /**
- * Bir kutuyu ve içindeki tüm alt kutuları (metin/ikon hariç) açık yeşile boyar.
- * Turuncu zemin iç içe geçmiş alt kutuda kalmışsa da yakalar.
+ * Bir kutuyu ve içindeki tüm alt kutuları açık nane yeşiline boyar
  */
-function yesilBoya(el, derinlik) {
+function yesilBoya(el, derinlik = 0) {
     if (!el || derinlik > 5) return;
 
     const tip = String(el.type || "");
@@ -105,207 +83,145 @@ function yesilBoya(el, derinlik) {
 
 
 /**
- * S3 Rozetlerini Turuncudan "Tamamlandı" (Yeşil) Haline Getirir
+ * S3 Kartını ve Durum Rozetlerini Birebir S2 Şablonuna Göre Günceller
+ * 
+ * - #box257 -> #box253 gibi olur
+ * - #box255 -> #box251 gibi olur
+ * - #text102 -> #text95 ("Tamamlandı") gibi olur
+ * - #vectorImage120 -> #vectorImage117 (Tik ikonu) gibi olur
+ * - #text98 -> AI Puanı yazılır
+ * - #button15 -> #button14 gibi olur
  */
-function s3DurumunuTamamla() {
-    console.log("S3 rozetleri yeşile çevriliyor...");
-    isTamamlandi = true;
-    try {
-        if (local) local.setItem('s3_durumu', 'tamamlandi');
-    } catch (e) {}
+function s3KartiniTamamla(puan) {
+    console.log("S3 Kartı ve Durum Kutuları Tamamlandı durumuna dönüştürülüyor...", puan);
 
-    // 1. "S3" METNİ (#text94): Koyu teal renk yap
-    try {
-        const t94 = $w('#text94');
-        if (t94) {
-            t94.text = "S3";
-            try {
-                t94.html = `<h3 style="color:#003831; font-weight:800; margin:0; text-align:center;">S3</h3>`;
-            } catch (e) {}
-        }
-    } catch (e) {}
-
-    // 2. S3 KARE KUTUSU (#box247): Açık nane yeşili yap
-    try {
-        const b247 = $w('#box247');
-        if (b247) {
-            try { b247.style.backgroundColor = "#C7F5EC"; } catch (e) {}
-            try { b247.style.borderColor = "transparent"; } catch (e) {}
-            try { if (typeof b247.label !== 'undefined') b247.label = "S3"; } catch (e) {}
-        }
-    } catch (e) {}
-
-    // 3. DIŞ KAPSÜL KUTUSU (#box251) ve İÇİNDEKİ TÜM KUTULAR: yeşile boya
-    // (Turuncu zemin iç içe bir alt kutuda kalmış olabilir; hepsini özyinelemeli boyar.)
-    yesilBoya($w('#box251'), 0);
-    yesilBoya($w('#box262'), 0);
-
-    // 4. "BAŞLANMADI" BUTONU/ELEMANI (#box262): "Tamamlandı" yap ve yeşile çevir
-    try {
-        const el262 = $w('#box262');
-        if (el262) {
-            // Eğer buton ise label'ı değiştir
-            if (typeof el262.label !== 'undefined') {
-                el262.label = "Tamamlandı";
-            }
-            // Eğer metin elemanı ise text'i değiştir
-            if (typeof el262.text !== 'undefined') {
-                el262.text = "Tamamlandı";
-                try {
-                    el262.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
-                } catch (e) {}
-            }
-            // Renk ve arkaplanı yeşil yap
-            try {
-                el262.style.backgroundColor = "#D4F8F0";
-                el262.style.color = "#003831";
-            } catch (e) {}
-
-            // İçindeki alt elemanlar varsa
-            if (el262.children && Array.isArray(el262.children)) {
-                el262.children.forEach(child => {
-                    try {
-                        if (typeof child.text !== 'undefined') {
-                            child.text = "Tamamlandı";
-                            child.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
-                        }
-                    } catch (e) {}
-                });
-            }
-        }
-    } catch (e) {}
-
-    // 5. SAAT İKONU (#vectorImage126): Yeşil Onay (Checkmark) İkonuna Çevir
-    try {
-        const icon = $w('#vectorImage126');
-        if (icon) {
-            try {
-                icon.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
-            } catch (errSvg) {}
-        }
-    } catch (e) {}
-
-    // 6. GENEL TARAMA: Sayfadaki herhangi bir "Başlanmadı" yazısını da "Tamamlandı"ya çevir
-    try {
-        $w("Text").forEach(el => {
-            try {
-                if (el && el.text) {
-                    const txt = el.text.trim();
-                    if (txt === "Başlanmadı" || txt.includes("Başlanmadı")) {
-                        el.text = "Tamamlandı";
-                        try {
-                            el.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
-                        } catch (e) {}
-                    }
-                }
-            } catch (e) {}
-        });
-    } catch (e) {}
-}
-
-
-/**
- * #box257 Konteynırını #box253'ün Yeşil / Tamamlandı Görünümüne Çevirir
- */
-function box257yiBox253Yap() {
-    console.log("box257 konteynırı box253 görünümüne dönüştürülüyor...");
-
+    // 1. KART KONTEYNIRI (#box257 -> #box253 gibi olsun)
     try {
         const b257 = $w('#box257');
-        if (!b257) {
-            console.warn("#box257 elemanı sayfada bulunamadı.");
-            return;
-        }
-
-        // 1. #box253'ün arkaplan veya stil bilgilerini al (sayfada mevcutsa)
-        let hedefBg = "rgba(212, 248, 240, 1)"; // Açık nane yeşili
-        try {
-            const b253 = $w('#box253');
-            if (b253 && b253.style && b253.style.backgroundColor) {
-                hedefBg = b253.style.backgroundColor;
+        const b253 = $w('#box253');
+        if (b257) {
+            if (b253 && b253.style) {
+                if (b253.style.backgroundColor) b257.style.backgroundColor = b253.style.backgroundColor;
+                if (b253.style.borderColor) b257.style.borderColor = b253.style.borderColor;
+                if (b253.style.borderWidth) b257.style.borderWidth = b253.style.borderWidth;
+            } else {
+                b257.style.borderColor = "rgba(0, 180, 159, 0.4)";
             }
-        } catch (e) {}
-
-        // 2. #box257 ve iç içe alt kutuları yeşile boya
-        try { b257.style.backgroundColor = hedefBg; } catch (e) {}
-        try { b257.style.borderColor = "transparent"; } catch (e) {}
-        yesilBoya(b257, 0);
-
-        // 3. #box257 içindeki alt elemanları (metinler, butonlar, ikonlar) tara ve güncelle
-        const elemanlariGuncelle = (el) => {
-            if (!el) return;
-
-            // Metin alanı ise
-            if (typeof el.text !== 'undefined') {
-                const txt = (el.text || "").trim();
-                if (txt === "Başlanmadı" || txt.includes("Başlanmadı")) {
-                    el.text = "Tamamlandı";
-                    try {
-                        el.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
-                    } catch (e) {}
-                } else if (/S[1-9]/i.test(txt)) {
-                    try {
-                        el.html = `<h3 style="color:#003831; font-weight:800; margin:0; text-align:center;">${txt}</h3>`;
-                    } catch (e) {}
-                }
-            }
-
-            // Buton ise
-            if (typeof el.label !== 'undefined') {
-                if (el.label.includes("Başlanmadı")) {
-                    el.label = "Tamamlandı";
-                }
-            }
-
-            // İkon / Vector Image ise yeşil onay (checkmark) ikonuna çevir
-            if (el.type === "$w.VectorImage" || (el.id && el.id.toLowerCase().includes("vector"))) {
-                try {
-                    el.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
-                } catch (e) {}
-            }
-
-            // İçindeki alt elemanları özyinelemeli güncelle
-            if (el.children && Array.isArray(el.children)) {
-                el.children.forEach(c => elemanlariGuncelle(c));
-            }
-        };
-
-        elemanlariGuncelle(b257);
-
-    } catch (err257) {
-        console.warn("box257 dönüştürülürken hata:", err257);
-    }
-}
-
-
-/**
- * Yukarıdaki button7 tıklandığında tetiklenir:
- * Eğer değerlendirme tamamlandıysa box257'yi box253 gibi yapar.
- */
-function handleButton7Click() {
-    let tamamlandi = isTamamlandi;
-    try {
-        if (!tamamlandi && typeof local !== 'undefined' && local.getItem('s3_durumu') === 'tamamlandi') {
-            tamamlandi = true;
-            isTamamlandi = true;
         }
     } catch (e) {}
 
-    if (tamamlandi) {
-        console.log("button7 tıklandı: Senaryo tamamlandığı için box257 kutusu box253 gibi yapılıyor...");
-        box257yiBox253Yap();
-    } else {
-        console.log("button7 tıklandı: Senaryo henüz tamamlanmadığı için box257 değiştirilmedi.");
-    }
+    // 2. BAŞLANMADI KONTEYNIRI (#box255 -> #box251 gibi olsun)
+    try {
+        const b255 = $w('#box255');
+        const b251 = $w('#box251');
+        if (b255) {
+            let hedefBg = "#D4F8F0";
+            let hedefBorder = "transparent";
+
+            if (b251 && b251.style) {
+                if (b251.style.backgroundColor) hedefBg = b251.style.backgroundColor;
+                if (b251.style.borderColor) hedefBorder = b251.style.borderColor;
+            }
+
+            b255.style.backgroundColor = hedefBg;
+            b255.style.borderColor = hedefBorder;
+            yesilBoya(b255, 0);
+        }
+    } catch (e) {}
+
+    // 3. BAŞLANMADI METNİ (#text102 -> #text95 "Tamamlandı" gibi olsun)
+    try {
+        const t102 = $w('#text102');
+        const t95 = $w('#text95');
+        if (t102) {
+            t102.text = (t95 && t95.text) ? t95.text : "Tamamlandı";
+            if (t95 && t95.html) {
+                t102.html = t95.html;
+            } else {
+                t102.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:14px; text-align:center;">Tamamlandı</p>`;
+            }
+        }
+    } catch (e) {}
+
+    // 4. SAAT İKONU (#vectorImage120 -> #vectorImage117 Yeşil Tik ikonu gibi olsun)
+    try {
+        const icon120 = $w('#vectorImage120');
+        const icon117 = $w('#vectorImage117');
+        if (icon120) {
+            if (icon117 && icon117.src) {
+                icon120.src = icon117.src;
+            } else {
+                icon120.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
+            }
+        }
+    } catch (e) {}
+
+    // 5. PUAN ALANI (#text98 -> scoreText alanındaki AI değerlendirme puanı)
+    try {
+        const t98 = $w('#text98');
+        if (t98) {
+            if (puan !== undefined && puan !== null) {
+                t98.text = String(puan);
+                t98.html = `<h4 style="color:#192A3E; font-weight:800; margin:0; text-align:center;">${puan}</h4>`;
+            } else {
+                t98.text = "..";
+            }
+        }
+    } catch (e) {}
+
+    // 6. BUTON (#button15 -> #button14 olsun)
+    try {
+        const btn15 = $w('#button15');
+        const btn14 = $w('#button14');
+        if (btn15 && btn14) {
+            if (btn14.label) btn15.label = btn14.label;
+            if (btn14.style) {
+                if (btn14.style.backgroundColor) btn15.style.backgroundColor = btn14.style.backgroundColor;
+                if (btn14.style.color) btn15.style.color = btn14.style.color;
+                if (btn14.style.borderColor) btn15.style.borderColor = btn14.style.borderColor;
+                if (btn14.style.borderWidth) btn15.style.borderWidth = btn14.style.borderWidth;
+                if (btn14.style.borderRadius) btn15.style.borderRadius = btn14.style.borderRadius;
+            }
+        }
+    } catch (e) {}
+
+    // 7. ROZET KUTUSU (#box252) & METİN (#text97)
+    try {
+        const b252 = $w('#box252');
+        if (b252 && b252.style) {
+            b252.style.backgroundColor = "#00B49F";
+        }
+    } catch (e) {}
+
+    // 8. YEDEK ID'LER (Önceki yapılardan kalan elemanlar varsa uyum için)
+    try {
+        yesilBoya($w('#box251'), 0);
+        yesilBoya($w('#box262'), 0);
+        const el262 = $w('#box262');
+        if (el262) {
+            if (typeof el262.label !== 'undefined') el262.label = "Tamamlandı";
+            if (typeof el262.text !== 'undefined') el262.text = "Tamamlandı";
+            try { el262.style.backgroundColor = "#D4F8F0"; el262.style.color = "#003831"; } catch (e) {}
+        }
+        const b247 = $w('#box247');
+        if (b247 && b247.style) { b247.style.backgroundColor = "#C7F5EC"; }
+        const t94 = $w('#text94');
+        if (t94) { t94.text = "S3"; }
+        const icon126 = $w('#vectorImage126');
+        if (icon126) {
+            const icon117 = $w('#vectorImage117');
+            if (icon117 && icon117.src) icon126.src = icon117.src;
+        }
+    } catch (e) {}
 }
 
 
 /**
- * Cevabı Alır, Üst Rozetleri Yeşile Çevirir, AI ile Değerlendirir ve Sonuçları Gösterir
+ * Cevabı Alır, S3 Kartını Günceller, AI ile Değerlendirir ve Sonuçları Gösterir
  */
 async function cevabiDegerlendir() {
-    // 1. ÜST ROZETLERİ ANINDA YEŞİL VE "TAMAMLANDI" YAP
-    s3DurumunuTamamla();
+    // 1. S3 KARTINI VE ROZETLERİNİ ANINDA GÜNCELLE
+    s3KartiniTamamla();
 
     // 2. AI DEĞERLENDİRME KUTUSUNU ANINDA AÇ (#aiResultBox)
     try {
@@ -351,6 +267,7 @@ async function cevabiDegerlendir() {
 
     // Yükleniyor durumunu alanlara önceden yaz
     try { if ($w('#scoreText')) $w('#scoreText').text = ".."; } catch (e) {}
+    try { if ($w('#text98')) $w('#text98').text = ".."; } catch (e) {}
     try { if ($w('#strengthsText')) $w('#strengthsText').text = "Yapay zekâ adayın yetkinlik analizini hazırlıyor..."; } catch (e) {}
     try { if ($w('#developmentText')) $w('#developmentText').text = "Pozisyon dinamiklerine göre gelişim önerisi inceleniyor..."; } catch (e) {}
 
@@ -387,6 +304,9 @@ async function cevabiDegerlendir() {
             $w('#scoreText').text = String(degerlendirme.puan);
         }
     } catch (e) {}
+
+    // #text98 ve S3 kartını hesaplanan skor ile güncelle
+    s3KartiniTamamla(degerlendirme.puan);
 
     try {
         if ($w('#strengthsText')) {
@@ -458,8 +378,3 @@ export async function avaluateButton_click(event) {
 export async function evaluateButton_click(event) {
     await cevabiDegerlendir();
 }
-
-export function button7_click(event) {
-    handleButton7Click();
-}
-
