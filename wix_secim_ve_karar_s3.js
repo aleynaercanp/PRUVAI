@@ -57,62 +57,86 @@ $w.onReady(function () {
  * S3 Rozetlerini Turuncudan "Tamamlandı" (Yeşil) Haline Getirir (#box247 ve #box251)
  */
 function s3DurumunuTamamla() {
-    console.log("S3 rozetleri güncelleniyor (#box247 ve #box251)...");
+    console.log("S3 rozetleri güncelleniyor (#box247, #box251, #box262, #vectorImage126, #text94)...");
 
-    // 1. #box247: S3 Rozeti Arka Planı ve Stili
+    // 1. "S3" METNİ (#text94): Koyu teal renk yap
     try {
-        const boxS3 = $w('#box247');
-        if (boxS3) {
-            try { boxS3.style.backgroundColor = "#C7F5EC"; } catch (e) {}
-            try { boxS3.style.borderColor = "transparent"; } catch (e) {}
-            // Eğer buton ise
-            try { if (typeof boxS3.label !== 'undefined') boxS3.label = "S3"; } catch (e) {}
-
-            // İçindeki elemanlar varsa
-            if (boxS3.children && Array.isArray(boxS3.children)) {
-                boxS3.children.forEach(child => {
-                    try {
-                        if (typeof child.text !== 'undefined') {
-                            child.html = `<h3 style="color:#003831; font-weight:800; margin:0; text-align:center;">S3</h3>`;
-                        }
-                    } catch (e) {}
-                });
-            }
+        const t94 = $w('#text94');
+        if (t94) {
+            t94.text = "S3";
+            try {
+                t94.html = `<h3 style="color:#003831; font-weight:800; margin:0; text-align:center;">S3</h3>`;
+            } catch (e) {}
         }
-    } catch (err247) {
-        console.warn("#box247 güncellenirken uyarı:", err247);
-    }
+    } catch (e) {}
 
-    // 2. #box251: Kapsül Rozet Arka Planı ve Stili
+    // 2. S3 KARE KUTUSU (#box247): Açık nane yeşili yap
     try {
-        const boxStatus = $w('#box251');
-        if (boxStatus) {
-            try { boxStatus.style.backgroundColor = "#D4F8F0"; } catch (e) {}
-            try { boxStatus.style.borderColor = "transparent"; } catch (e) {}
-            // Eğer buton ise
-            try { if (typeof boxStatus.label !== 'undefined') boxStatus.label = "Tamamlandı"; } catch (e) {}
+        const b247 = $w('#box247');
+        if (b247) {
+            try { b247.style.backgroundColor = "#C7F5EC"; } catch (e) {}
+            try { b247.style.borderColor = "transparent"; } catch (e) {}
+            try { if (typeof b247.label !== 'undefined') b247.label = "S3"; } catch (e) {}
+        }
+    } catch (e) {}
 
-            if (boxStatus.children && Array.isArray(boxStatus.children)) {
-                boxStatus.children.forEach(child => {
+    // 3. DIŞ KAPSÜL KUTUSU (#box251): Açık yeşil arka plan yap
+    try {
+        const b251 = $w('#box251');
+        if (b251) {
+            try { b251.style.backgroundColor = "#D4F8F0"; } catch (e) {}
+            try { b251.style.borderColor = "transparent"; } catch (e) {}
+        }
+    } catch (e) {}
+
+    // 4. "BAŞLANMADI" ELEMANI (#box262): "Tamamlandı" yap ve yeşile çevir
+    try {
+        const el262 = $w('#box262');
+        if (el262) {
+            // Eğer text elemanı ise
+            if (typeof el262.text !== 'undefined') {
+                el262.text = "Tamamlandı";
+                try {
+                    el262.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
+                } catch (e) {}
+            }
+            // Eğer buton ise
+            if (typeof el262.label !== 'undefined') {
+                el262.label = "Tamamlandı";
+            }
+            // Eğer stil alıyorsa
+            try {
+                el262.style.backgroundColor = "#D4F8F0";
+                el262.style.color = "#003831";
+            } catch (e) {}
+
+            // Eğer bir kutu ve içinde çocuk elemanlar varsa
+            if (el262.children && Array.isArray(el262.children)) {
+                el262.children.forEach(child => {
                     try {
                         if (typeof child.text !== 'undefined') {
                             child.text = "Tamamlandı";
                             child.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
                         }
-                        if (child.type === "$w.VectorImage" || (child.id && child.id.toLowerCase().includes("vector"))) {
-                            try {
-                                child.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
-                            } catch (errSvg) {}
-                        }
                     } catch (e) {}
                 });
             }
         }
-    } catch (err251) {
-        console.warn("#box251 güncellenirken uyarı:", err251);
-    }
+    } catch (e) {}
 
-    // 3. DOĞRUDAN METİN ELEMANLARINI TARA: "Başlanmadı" yazısını bul ve "Tamamlandı" yap
+    // 5. SAAT İKONU (#vectorImage126): Yeşil Onay (Checkmark) İkonuna Çevir
+    try {
+        const icon = $w('#vectorImage126');
+        if (icon) {
+            try {
+                icon.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
+            } catch (errSvg) {
+                console.warn("İkon değiştirme uyarısı:", errSvg);
+            }
+        }
+    } catch (e) {}
+
+    // 6. GENEL TARAMA: Sayfadaki herhangi bir "Başlanmadı" yazısını da "Tamamlandı"ya çevir
     try {
         $w("Text").forEach(el => {
             try {
@@ -124,17 +148,12 @@ function s3DurumunuTamamla() {
                             el.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
                         } catch (e) {}
                     }
-                    if (txt === "S3") {
-                        try {
-                            el.html = `<h3 style="color:#003831; font-weight:800; margin:0; text-align:center;">S3</h3>`;
-                        } catch (e) {}
-                    }
                 }
             } catch (e) {}
         });
     } catch (e) {}
 
-    // 4. Durumu kalıcı kaydet
+    // 7. Durumu hafızaya kalıcı kaydet
     try {
         if (local) local.setItem('s3_durumu', 'tamamlandi');
     } catch (e) {}
