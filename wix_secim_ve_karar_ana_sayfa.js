@@ -1,35 +1,25 @@
-/**
- * PRUVAI — Wix Studio "Seçim ve Karar" Ana Sayfa Kodu
- * 
- * Bu sayfa, S3 senaryosunun tamamlanıp tamamlanmadığını session üzerinden kontrol eder
- * ve tamamlandıysa (s3_tamamlandi === 'true') ana ekrandaki ilgili modül kartının
- * renklerini, metinlerini ve ikonunu "Tamamlandı" durumuna (Yeşil) geçirir.
- */
-
-import { session } from 'wix-storage';
-
 $w.onReady(function () {
     console.log("PRUVAI Seçim ve Karar Ana Sayfası Yükleniyor...");
 
     // s3_tamamlandi anahtar kelimesi ile session verisini çek
-    const s3TamamlandiMi = sessionOku('s3_tamamlandi');
+    const s3TamamlandiMi = pruvaiSessionOku_s3('s3_tamamlandi');
 
     if (s3TamamlandiMi === 'true') {
         console.log("S3 Senaryosu Tamamlanmış! Ana sayfadaki S3 kartı yeşile dönüştürülüyor...");
         
         // Wix rendering ezmelerine karşı garantili olarak 3 kere çalıştırıyoruz
-        kartDurumunuTamamlandiYap();
-        setTimeout(kartDurumunuTamamlandiYap, 150);
-        setTimeout(kartDurumunuTamamlandiYap, 500);
-        setTimeout(kartDurumunuTamamlandiYap, 1200);
+        pruvaiKartDurumunuTamamlandiYap_s3();
+        setTimeout(pruvaiKartDurumunuTamamlandiYap_s3, 150);
+        setTimeout(pruvaiKartDurumunuTamamlandiYap_s3, 500);
+        setTimeout(pruvaiKartDurumunuTamamlandiYap_s3, 1200);
     }
 });
 
 
 /**
- * Güvenli Session Okuma Yardımcısı
+ * Güvenli Session Okuma Yardımcısı (İsim çakışmasını önlemek için özel isimlendirildi)
  */
-function sessionOku(anahtar) {
+function pruvaiSessionOku_s3(anahtar) {
     try {
         if (typeof session !== 'undefined' && session.getItem) {
             const val = session.getItem(anahtar);
@@ -43,7 +33,7 @@ function sessionOku(anahtar) {
 /**
  * Bir kutuyu ve içindeki elemanları yeşile boyar
  */
-function yesilBoya(el, derinlik) {
+function pruvaiYesilBoya_s3(el, derinlik) {
     if (!el || derinlik > 5) return;
 
     const tip = String(el.type || "");
@@ -56,7 +46,7 @@ function yesilBoya(el, derinlik) {
 
     try {
         if (el.children && el.children.length) {
-            el.children.forEach(c => yesilBoya(c, derinlik + 1));
+            el.children.forEach(c => pruvaiYesilBoya_s3(c, derinlik + 1));
         }
     } catch (e) {}
 }
@@ -65,7 +55,7 @@ function yesilBoya(el, derinlik) {
 /**
  * Seçim ve Karar ana sayfasındaki S3 kartını "Tamamlandı" durumuna geçirir.
  */
-function kartDurumunuTamamlandiYap() {
+function pruvaiKartDurumunuTamamlandiYap_s3() {
     // 1. box256 rengi yeşil (#C7F5EC) (box252 gibi)
     try {
         const box256 = $w('#box256');
@@ -89,7 +79,7 @@ function kartDurumunuTamamlandiYap() {
         if (box255) {
             box255.style.backgroundColor = "#C7F5EC";
             box255.style.borderColor = "transparent";
-            yesilBoya(box255, 0); // İçindeki olası konteynırları da garantiye al
+            pruvaiYesilBoya_s3(box255, 0); // İçindeki olası konteynırları da garantiye al
         }
     } catch (e) {}
 
@@ -113,7 +103,7 @@ function kartDurumunuTamamlandiYap() {
 
     // 6. text98 skor alanını güncelle ("84 / 100" gibi)
     try {
-        const puan = sessionOku('s3_puan') || "100";
+        const puan = pruvaiSessionOku_s3('s3_puan') || "100";
         const text98 = $w('#text98');
         if (text98) {
             text98.text = `${puan} / 100`;
