@@ -22,7 +22,7 @@
  */
 
 import { fetch } from 'wix-fetch';
-import { session, local } from 'wix-storage';
+import { session } from 'wix-storage';
 
 // Canlı Python Render Backend URL
 const BACKEND_URL = "https://pruvai-backend.onrender.com";
@@ -104,19 +104,14 @@ $w.onReady(function () {
 
 
 /**
- * Güvenli Session & Local Yazma / Okuma Yardımcıları
- * Hem session hem local storage'a yazar; böylece sayfa F5 yapıldığında veya
- * yeniden yüklendiğinde hiçbir veri ve başarı durumu kaybolmaz.
+ * Güvenli Session Yazma / Okuma Yardımcıları
+ * Sadece session storage kullanır; böylece tarayıcı kapatıldığında sıfırlanır, 
+ * ancak sayfa (F5) yenilendiğinde veriler korunur.
  */
 function sessionKaydet(anahtar, deger) {
     try {
         if (typeof session !== 'undefined' && session.setItem) {
             session.setItem(anahtar, String(deger));
-        }
-    } catch (e) {}
-    try {
-        if (typeof local !== 'undefined' && local.setItem) {
-            local.setItem(anahtar, String(deger));
         }
     } catch (e) {}
 }
@@ -125,12 +120,6 @@ function sessionOku(anahtar) {
     try {
         if (typeof session !== 'undefined' && session.getItem) {
             const val = session.getItem(anahtar);
-            if (val !== null && val !== undefined && val !== "") return val;
-        }
-    } catch (e) {}
-    try {
-        if (typeof local !== 'undefined' && local.getItem) {
-            const val = local.getItem(anahtar);
             if (val !== null && val !== undefined && val !== "") return val;
         }
     } catch (e) {}
@@ -348,27 +337,32 @@ async function cevabiDegerlendir() {
         degerlendirme = akilliYerelDegerlendirme(cevapMetni);
     }
 
-    // 7. SONUÇLARI İLGİLİ ELEMANLARA YAZ:
+    // 7. SONUÇLARI İLGİLİ ELEMANLARA YAZ VE SESSION'A KAYDET:
+    sessionKaydet('s3_puan', String(degerlendirme.puan));
+    sessionKaydet('s3_guclu', String(degerlendirme.guclu_yonler));
+    sessionKaydet('s3_gelisim', String(degerlendirme.gelisim_alanlari));
+
     try {
         if ($w('#scoreText')) {
             $w('#scoreText').text = String(degerlendirme.puan);
-            sessionKaydet('s3_puan', String(degerlendirme.puan));
         }
     } catch (e) {}
 
     try {
         if ($w('#strengthsText')) {
             $w('#strengthsText').text = String(degerlendirme.guclu_yonler);
-            sessionKaydet('s3_guclu', String(degerlendirme.guclu_yonler));
         }
     } catch (e) {}
 
     try {
         if ($w('#developmentText')) {
             $w('#developmentText').text = String(degerlendirme.gelisim_alanlari);
-            sessionKaydet('s3_gelisim', String(degerlendirme.gelisim_alanlari));
         }
     } catch (e) {}
+
+    // Kalıcılığı kesinleştir
+    sessionKaydet('s3_tamamlandi', 'true');
+    s3DurumunuTamamla();
 
     // 8. Buton yazısını eski haline getir
     if (aktifButon) {
