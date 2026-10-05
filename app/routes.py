@@ -74,6 +74,38 @@ def api_sohbet():
         }), 500
 
 
+@api_bp.route('/degerlendir', methods=['POST'])
+def api_degerlendir():
+    """
+    Seçim ve Karar (S3) vaka cevabını değerlendirir.
+    Beklenen gövde: { "cevap": "...", "senaryo": "..." }
+    """
+    veri = request.get_json(silent=True) or {}
+    cevap = str(veri.get('cevap') or veri.get('answer') or veri.get('mesaj') or '').strip()
+
+    if not cevap:
+        return jsonify({
+            "basari": False,
+            "hata": "Lütfen değerlendirilecek bir cevap metni giriniz."
+        }), 400
+
+    senaryo = str(veri.get('senaryo') or 'Seçim ve Karar / S3').strip()
+
+    try:
+        sonuc = ai_service.vaka_degerlendir(cevap=cevap, senaryo_bilgisi=senaryo)
+        return jsonify({
+            "basari": True,
+            "senaryo": senaryo,
+            **sonuc
+        }), 200
+    except Exception as err:
+        return jsonify({
+            "basari": False,
+            "hata": "Değerlendirme sırasında bir hata oluştu.",
+            "detay": str(err)
+        }), 500
+
+
 @api_bp.route('/leads', methods=['POST'])
 def api_leads_ekle():
     """

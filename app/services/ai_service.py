@@ -113,8 +113,89 @@ class AIService:
             except Exception as err:
                 raise AIServiceError(f"Beklenmeyen bir hata oluştu: {str(err)}")
 
-        raise AIServiceError(f"Kullanılabilir modellerden yanıt alınamadı. Son durum: {last_error}")
+    def vaka_degerlendir(self, cevap: str, senaryo_bilgisi: str = "") -> dict:
+        """
+        Kullanıcının Seçim ve Karar (S3) işe alım vaka cevabını değerlendirir.
+        Puan, güçlü yönler ve gelişim alanlarını içeren bir sözlük döner.
+        """
+        cevap_temiz = (cevap or "").strip()
+        if not cevap_temiz:
+            return {
+                "puan": 0,
+                "guclu_yonler": "Henüz bir cevap girilmedi.",
+                "gelisim_alanlari": "Lütfen hangi adayı neden seçtiğinizi detaylandırarak yazınız."
+            }
+
+        api_key = self.config.GROQ_API_KEY
+
+        # Canlı Groq çağrısı için prompt
+        if api_key and not api_key.startswith("gsk_buraya") and len(api_key) > 10:
+            prompt = f"""Sen PRUVAI İnsan Kaynakları ve Yetkinlik Değerlendirme Yapay Zekasısın.
+Aşağıdaki İşe Alım Uzmanı Seçim ve Karar Senaryosu (S3) için adayın verdiği cevabı değerlendir:
+
+SENARYO:
+- Pozisyon: İşe Alım Uzmanı
+- Beklenti: İlk 6 ayda yoğun aday görüşmeleri, bölüm yöneticileriyle doğrudan iletişim ve aktif süreç takibi.
+- Aday A (Ece): Vaka: 92/100, Mülakat: 86/100, İletişim: 72/100, Deneyim: 3 yıl, Bütçe içinde.
+- Aday B (Kerem): Vaka: 82/100, Mülakat: 91/100, İletişim: 93/100, Deneyim: 1 yıl, Bütçe içinde.
+
+ADAYIN CEVABI:
+"{cevap_temiz}"
+
+LÜTFEN SADECE VE SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir açıklama metni ekleme:
+{{
+  "puan": 85,
+  "guclu_yonler": "Adayın güçlü yönlerine dair 1-2 cümlelik profesyonel İK geri bildirimi.",
+  "gelisim_alanlari": "Adayın kararında geliştirebileceği/göz ardı ettiği noktaya dair 1-2 cümlelik yapıcı öneri."
+}}
+Puan 0-100 arasında bir tam sayı olmalıdır."""
+
+            try:
+                yanit_metni = self.yanit_uret(mesaj=prompt)
+                import json, re
+                json_match = re.search(r'\{.*\}', yanit_metni, re.DOTALL)
+                if json_match:
+                    parsed = json.loads(json_match.group(0))
+                    return {
+                        "puan": int(parsed.get("puan", 85)),
+                        "guclu_yonler": str(parsed.get("guclu_yonler", "Yetkinlik odaklı analiz yapıldı.")),
+                        "gelisim_alanlari": str(parsed.get("gelisim_alanlari", "Alternatif risk senaryoları değerlendirilebilir."))
+                    }
+            except Exception:
+                pass
+
+        # Akıllı yerel kural bazlı İK değerlendirme motoru (Fallback)
+        lower_ans = cevap_temiz.lower()
+        secilen_kerem = any(k in lower_ans for k in ["kerem", "aday b", "b adayı", "b ile", "b'yi", "kerem'i"])
+        secilen_ece = any(k in lower_ans for k in ["ece", "aday a", "a adayı", "a ile", "a'yı", "ece'yi"])
+        uzunluk = len(cevap_temiz.split())
+
+        puan = 70
+        if secilen_kerem:
+            puan += 15
+            guclu = "Pozisyonun ilk 6 aylık önceliği olan 'yoğun görüşme ve paydaş iletişimi' ihtiyacını, Kerem'in yüksek iletişim (93) ve mülakat (91) yetkinlikleriyle doğru eşleştirdiniz."
+            gelisim = "Kerem'in 1 yıllık tecrübesi ve vaka çalışmasındaki (82) eksiklerini kapatmak için ilk aylarda kıdemli bir uzmandan teknik mentorluk almasını sürece dahil edebilirdiniz."
+        elif secilen_ece:
+            puan += 10
+            guclu = "Ece'nin 3 yıllık sektörel deneyimini ve vaka çalışmasındaki yüksek başarısını (92) temel alarak bağımsız iş yapabilme kapasitesini öne çıkardınız."
+            gelisim = "İlk 6 ayda kritik olan yoğun paydaş ve bölüm yöneticisi iletişiminde Ece'nin iletişim puanının (72) yaratabileceği riskleri ve yönetim planını detaylandırabilirdiniz."
+        else:
+            puan += 5
+            guclu = "Her iki adayın güçlü yönlerini ve pozisyon gereksinimlerini çok yönlü bir bakış açısıyla ele aldınız."
+            gelisim = "Hangi adayla ilerleneceği konusunda daha net bir karar belirterek kararınızın arkasındaki ana stratejiyi vurgulayabilirsiniz."
+
+        if uzunluk > 30:
+            puan = min(98, puan + 10)
+        elif uzunluk < 10:
+            puan = max(60, puan - 10)
+
+        return {
+            "puan": puan,
+            "guclu_yonler": guclu,
+            "gelisim_alanlari": gelisim
+        }
 
 
 # Uygulama genelinde kullanılacak servis örneği
 ai_service = AIService()
+
