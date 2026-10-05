@@ -54,6 +54,29 @@ $w.onReady(function () {
 
 
 /**
+ * Bir kutuyu ve içindeki tüm alt kutuları (metin/ikon hariç) açık yeşile boyar.
+ * Turuncu zemin iç içe geçmiş alt kutuda kalmışsa da yakalar.
+ */
+function yesilBoya(el, derinlik) {
+    if (!el || derinlik > 5) return;
+
+    const tip = String(el.type || "");
+    const metinVeyaIkon = /Text|Vector|Image|Button|Icon/i.test(tip);
+
+    if (!metinVeyaIkon) {
+        try { el.style.backgroundColor = "rgba(212, 248, 240, 1)"; } catch (e) {}
+        try { el.style.borderColor = "rgba(212, 248, 240, 1)"; } catch (e) {}
+    }
+
+    try {
+        if (el.children && el.children.length) {
+            el.children.forEach(c => yesilBoya(c, derinlik + 1));
+        }
+    } catch (e) {}
+}
+
+
+/**
  * S3 Rozetlerini Turuncudan "Tamamlandı" (Yeşil) Haline Getirir
  */
 function s3DurumunuTamamla() {
@@ -80,14 +103,10 @@ function s3DurumunuTamamla() {
         }
     } catch (e) {}
 
-    // 3. DIŞ KAPSÜL KUTUSU (#box251): Açık yeşil arka plan yap
-    try {
-        const b251 = $w('#box251');
-        if (b251) {
-            try { b251.style.backgroundColor = "#D4F8F0"; } catch (e) {}
-            try { b251.style.borderColor = "transparent"; } catch (e) {}
-        }
-    } catch (e) {}
+    // 3. DIŞ KAPSÜL KUTUSU (#box251) ve İÇİNDEKİ TÜM KUTULAR: yeşile boya
+    // (Turuncu zemin iç içe bir alt kutuda kalmış olabilir; hepsini özyinelemeli boyar.)
+    yesilBoya($w('#box251'), 0);
+    yesilBoya($w('#box262'), 0);
 
     // 4. "BAŞLANMADI" BUTONU/ELEMANI (#box262): "Tamamlandı" yap ve yeşile çevir
     try {
