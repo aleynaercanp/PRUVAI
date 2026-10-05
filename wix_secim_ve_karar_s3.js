@@ -3,17 +3,18 @@
  * 
  * BİREBİR EŞLEŞEN TÜM ID'LER:
  * -------------------------------------------------------------
- * 1. Üst Durum Rozetleri:
- *    - #box247                ("S3" yazan kare rozet - Turuncudan Yeşile döner)
- *    - #box251                ("Başlanmadı" kapsül rozet - "Tamamlandı" Yeşile döner)
+ * 1. Üst Rozet Elemanları:
+ *    - #box247                (S3 Kare Kutusu -> Yeşile döner)
+ *    - #text94                ("S3" Metni -> Koyu renge döner)
+ *    - #box251                (Dış Kapsül Kutusu -> Yeşile döner)
+ *    - #box262                ("Başlanmadı" Butonu/Metni -> "Tamamlandı" olur)
+ *    - #vectorImage126        (Saat İkonu -> Yeşil Onay/Checkmark olur)
  * 
- * 2. Buton:
+ * 2. Buton ve AI Konteynırı:
  *    - #avaluateButton        ("Gönder ve Değerlendir" Butonu)
- * 
- * 3. AI Değerlendirme Konteynırı:
  *    - #aiResultBox           (Turuncu Çerçeveli AI Değerlendirme Kutusu)
  * 
- * 4. Girdi ve Çıktı Alanları:
+ * 3. Girdi ve Çıktı Alanları:
  *    - #answerInput           (Adayın cevabını yazdığı metin kutusu)
  *    - #scoreText             ("-" alanındaki puan, örn: 88)
  *    - #strengthsText         (Güçlü Yönler metni)
@@ -21,25 +22,24 @@
  */
 
 import { fetch } from 'wix-fetch';
-import { local } from 'wix-storage-frontend';
 
-// Canlı Render Backend URL
+// Canlı Python Render Backend URL
 const BACKEND_URL = "https://pruvai-backend.onrender.com";
 
 $w.onReady(function () {
     console.log("PRUVAI Seçim ve Karar / S3 Sayfası Başlatılıyor...");
 
     // 1. Sayfa ilk açıldığında AI Değerlendirme kutusunu SIFIR PİKSEL YAP (collapse)
-    degerlendirmeKutusunuKapat();
-
-    // 2. Daha önce bu senaryo tamamlandıysa durumu hatırla ve yeşil göster
+    // Böylece sayfa açıldığında KUTU KAPALI BAŞLAR!
     try {
-        if (local && local.getItem('s3_durumu') === 'tamamlandi') {
-            s3DurumunuTamamla();
+        const c = $w('#aiResultBox');
+        if (c) {
+            try { c.collapse(); } catch (e) {}
+            try { c.hide(); } catch (e) {}
         }
     } catch (e) {}
 
-    // 3. "Gönder ve Değerlendir" Butonunu (#avaluateButton) Dinle
+    // 2. "Gönder ve Değerlendir" Butonunu (#avaluateButton) Dinle
     try {
         const btn = $w("#avaluateButton") || $w("#evaluateButton");
         if (btn && typeof btn.onClick === 'function') {
@@ -54,10 +54,10 @@ $w.onReady(function () {
 
 
 /**
- * S3 Rozetlerini Turuncudan "Tamamlandı" (Yeşil) Haline Getirir (#box247 ve #box251)
+ * S3 Rozetlerini Turuncudan "Tamamlandı" (Yeşil) Haline Getirir
  */
 function s3DurumunuTamamla() {
-    console.log("S3 rozetleri güncelleniyor (#box247, #box251, #box262, #vectorImage126, #text94)...");
+    console.log("S3 rozetleri yeşile çevriliyor...");
 
     // 1. "S3" METNİ (#text94): Koyu teal renk yap
     try {
@@ -89,28 +89,28 @@ function s3DurumunuTamamla() {
         }
     } catch (e) {}
 
-    // 4. "BAŞLANMADI" ELEMANI (#box262): "Tamamlandı" yap ve yeşile çevir
+    // 4. "BAŞLANMADI" BUTONU/ELEMANI (#box262): "Tamamlandı" yap ve yeşile çevir
     try {
         const el262 = $w('#box262');
         if (el262) {
-            // Eğer text elemanı ise
+            // Eğer buton ise label'ı değiştir
+            if (typeof el262.label !== 'undefined') {
+                el262.label = "Tamamlandı";
+            }
+            // Eğer metin elemanı ise text'i değiştir
             if (typeof el262.text !== 'undefined') {
                 el262.text = "Tamamlandı";
                 try {
                     el262.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
                 } catch (e) {}
             }
-            // Eğer buton ise
-            if (typeof el262.label !== 'undefined') {
-                el262.label = "Tamamlandı";
-            }
-            // Eğer stil alıyorsa
+            // Renk ve arkaplanı yeşil yap
             try {
                 el262.style.backgroundColor = "#D4F8F0";
                 el262.style.color = "#003831";
             } catch (e) {}
 
-            // Eğer bir kutu ve içinde çocuk elemanlar varsa
+            // İçindeki alt elemanlar varsa
             if (el262.children && Array.isArray(el262.children)) {
                 el262.children.forEach(child => {
                     try {
@@ -130,9 +130,7 @@ function s3DurumunuTamamla() {
         if (icon) {
             try {
                 icon.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
-            } catch (errSvg) {
-                console.warn("İkon değiştirme uyarısı:", errSvg);
-            }
+            } catch (errSvg) {}
         }
     } catch (e) {}
 
@@ -152,34 +150,19 @@ function s3DurumunuTamamla() {
             } catch (e) {}
         });
     } catch (e) {}
-
-    // 7. Durumu hafızaya kalıcı kaydet
-    try {
-        if (local) local.setItem('s3_durumu', 'tamamlandi');
-    } catch (e) {}
 }
 
 
 /**
- * AI Değerlendirme Kutusunu Başlangıçta Kapatır (Collapse)
+ * Cevabı Alır, Üst Rozetleri Yeşile Çevirir, AI ile Değerlendirir ve Sonuçları Gösterir
  */
-function degerlendirmeKutusunuKapat() {
-    try {
-        const c = $w('#aiResultBox') || $w('#aiEvaluationContainer');
-        if (c) {
-            try { c.show(); } catch (e) {}
-            try { c.collapse(); } catch (e) {}
-        }
-    } catch (e) {}
-}
+async function cevabiDegerlendir() {
+    // 1. ÜST ROZETLERİ ANINDA YEŞİL VE "TAMAMLANDI" YAP
+    s3DurumunuTamamla();
 
-
-/**
- * AI Değerlendirme Kutusunu Açar ve Sayfayı Aşağı Kaydırır (Expand & ScrollTo)
- */
-async function degerlendirmeKutusunuAc() {
+    // 2. AI DEĞERLENDİRME KUTUSUNU ANINDA AÇ (#aiResultBox)
     try {
-        const c = $w('#aiResultBox') || $w('#aiEvaluationContainer');
+        const c = $w('#aiResultBox');
         if (c) {
             try { await c.show(); } catch (e) {}
             try { await c.expand(); } catch (e) {}
@@ -190,21 +173,7 @@ async function degerlendirmeKutusunuAc() {
                 } catch (e) {}
             }, 80);
         }
-    } catch (e) {
-        console.warn("Kutu açma hatası:", e);
-    }
-}
-
-
-/**
- * Cevabı Alır, Üst Rozetleri Yeşile Çevirir, AI ile Değerlendirir ve Sonuçları Gösterir
- */
-async function cevabiDegerlendir() {
-    // 1. ÜST ROZETLERİ ANINDA YEŞİL VE "TAMAMLANDI" YAP (#box247 ve #box251)
-    s3DurumunuTamamla();
-
-    // 2. AI DEĞERLENDİRME KUTUSUNU ANINDA AÇ (#aiResultBox)
-    await degerlendirmeKutusunuAc();
+    } catch (e) {}
 
     // 3. Kullanıcının yazdığı cevabı oku
     let cevapMetni = "";
@@ -294,7 +263,7 @@ async function cevabiDegerlendir() {
 
 
 /**
- * Akıllı Yedek İK Değerlendirme Motoru (Kesintisiz Yanıt Garantisi)
+ * Akıllı Yedek İK Değerlendirme Motoru
  */
 function akilliYerelDegerlendirme(cevap) {
     const lower = cevap.toLowerCase();
