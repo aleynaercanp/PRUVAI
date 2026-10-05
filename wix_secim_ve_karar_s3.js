@@ -1,15 +1,19 @@
 /**
  * PRUVAI — Wix Studio "Seçim ve Karar / S3" Senaryo Sayfa Kodu
  * 
- * BİREBİR EŞLEŞEN ID'LER:
+ * BİREBİR EŞLEŞEN TÜM ID'LER:
  * -------------------------------------------------------------
- * 1. Buton ID:
+ * 1. Üst Durum Rozetleri:
+ *    - #box247                ("S3" yazan kare rozet - Turuncudan Yeşile döner)
+ *    - #box251                ("Başlanmadı" kapsül rozet - "Tamamlandı" Yeşile döner)
+ * 
+ * 2. Buton:
  *    - #avaluateButton        ("Gönder ve Değerlendir" Butonu)
  * 
- * 2. AI Konteynır ID:
+ * 3. AI Değerlendirme Konteynırı:
  *    - #aiResultBox           (Turuncu Çerçeveli AI Değerlendirme Kutusu)
  * 
- * 3. Girdi ve Çıktı Alanları:
+ * 4. Girdi ve Çıktı Alanları:
  *    - #answerInput           (Adayın cevabını yazdığı metin kutusu)
  *    - #scoreText             ("-" alanındaki puan, örn: 88)
  *    - #strengthsText         (Güçlü Yönler metni)
@@ -17,6 +21,7 @@
  */
 
 import { fetch } from 'wix-fetch';
+import { local } from 'wix-storage-frontend';
 
 // Canlı Render Backend URL
 const BACKEND_URL = "https://pruvai-backend.onrender.com";
@@ -24,11 +29,17 @@ const BACKEND_URL = "https://pruvai-backend.onrender.com";
 $w.onReady(function () {
     console.log("PRUVAI Seçim ve Karar / S3 Sayfası Başlatılıyor...");
 
-    // 1. Sayfa açıldığında AI Değerlendirme kutusunu SIFIR PİKSEL YAP (collapse)
-    // Beyaz boşluk bırakmaz, sayfa tam butonun altında biter.
+    // 1. Sayfa ilk açıldığında AI Değerlendirme kutusunu SIFIR PİKSEL YAP (collapse)
     degerlendirmeKutusunuKapat();
 
-    // 2. "Gönder ve Değerlendir" Butonunu (#avaluateButton) Dinle
+    // 2. Daha önce bu senaryo tamamlandıysa durumu hatırla ve yeşil göster
+    try {
+        if (local && local.getItem('s3_durumu') === 'tamamlandi') {
+            s3DurumunuTamamla();
+        }
+    } catch (e) {}
+
+    // 3. "Gönder ve Değerlendir" Butonunu (#avaluateButton) Dinle
     try {
         const btn = $w("#avaluateButton") || $w("#evaluateButton");
         if (btn && typeof btn.onClick === 'function') {
@@ -40,6 +51,69 @@ $w.onReady(function () {
         console.warn("Buton bağlama uyarısı:", e);
     }
 });
+
+
+/**
+ * S3 Rozetlerini Turuncudan "Tamamlandı" (Yeşil) Haline Getirir (#box247 ve #box251)
+ */
+function s3DurumunuTamamla() {
+    // 1. #box247: S3 Kare Rozeti (Turuncudan Açık Yeşile)
+    try {
+        const boxS3 = $w('#box247');
+        if (boxS3) {
+            boxS3.style.backgroundColor = "#C7F5EC"; // Açık nane yeşili
+            boxS3.style.borderColor = "transparent";
+
+            // İçindeki "S3" metnini koyu teal renk yap
+            if (boxS3.children && Array.isArray(boxS3.children)) {
+                boxS3.children.forEach(child => {
+                    try {
+                        if (typeof child.text !== 'undefined') {
+                            child.html = `<h3 style="color:#003831; font-weight:800; margin:0; text-align:center;">S3</h3>`;
+                        }
+                    } catch (e) {}
+                });
+            }
+        }
+    } catch (err247) {
+        console.warn("#box247 güncellenirken uyarı:", err247);
+    }
+
+    // 2. #box251: Kapsül Rozet ("Başlanmadı" -> "Tamamlandı")
+    try {
+        const boxStatus = $w('#box251');
+        if (boxStatus) {
+            boxStatus.style.backgroundColor = "#D4F8F0"; // Açık yeşil arka plan
+            boxStatus.style.borderColor = "transparent";
+
+            // İçindeki elemanları (metin ve ikon) yeşil 'Tamamlandı' haline çevir
+            if (boxStatus.children && Array.isArray(boxStatus.children)) {
+                boxStatus.children.forEach(child => {
+                    try {
+                        // Metin elemanı ise "Tamamlandı" yap ve koyu yeşil renk ver
+                        if (typeof child.text !== 'undefined') {
+                            child.text = "Tamamlandı";
+                            child.html = `<p style="color:#003831; font-weight:700; margin:0; font-size:15px;">Tamamlandı</p>`;
+                        }
+                        // İkon elemanı ise saati yeşil onay (checkmark) ikonuna çevir
+                        if (child.type === "$w.VectorImage" || (child.id && child.id.toLowerCase().includes("vector"))) {
+                            try {
+                                child.src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00a896"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
+                            } catch (errSvg) {}
+                        }
+                    } catch (e) {}
+                });
+            }
+        }
+    } catch (err251) {
+        console.warn("#box251 güncellenirken uyarı:", err251);
+    }
+
+    // Kalıcı olması için hafızaya kaydet
+    try {
+        if (local) local.setItem('s3_durumu', 'tamamlandi');
+    } catch (e) {}
+}
 
 
 /**
@@ -79,13 +153,16 @@ async function degerlendirmeKutusunuAc() {
 
 
 /**
- * Cevabı Alır, Canlı AI ile Değerlendirir ve Sonuçları Gösterir
+ * Cevabı Alır, Üst Rozetleri Yeşile Çevirir, AI ile Değerlendirir ve Sonuçları Gösterir
  */
 async function cevabiDegerlendir() {
-    // 1. Kutuyu KESİNLİKLE AÇ (kullanıcı tıkladığı anda açılsın)
+    // 1. ÜST ROZETLERİ ANINDA YEŞİL VE "TAMAMLANDI" YAP (#box247 ve #box251)
+    s3DurumunuTamamla();
+
+    // 2. AI DEĞERLENDİRME KUTUSUNU ANINDA AÇ (#aiResultBox)
     await degerlendirmeKutusunuAc();
 
-    // 2. Kullanıcının yazdığı cevabı oku
+    // 3. Kullanıcının yazdığı cevabı oku
     let cevapMetni = "";
     try {
         if ($w('#answerInput')) {
@@ -93,16 +170,16 @@ async function cevabiDegerlendir() {
         }
     } catch (e) {}
 
-    // Eğer kullanıcı henüz bir şey yazmadıysa kutuyu aç ve yönlendirici mesaj ver
+    // Eğer kullanıcı henüz bir şey yazmadıysa kutuyu açık bırak ve yönlendirici mesaj göster
     if (!cevapMetni) {
         try { if ($w('#scoreText')) $w('#scoreText').text = "-"; } catch (e) {}
         try { if ($w('#strengthsText')) $w('#strengthsText').text = "Lütfen yukarıdaki kutuya hangi adayla (Kerem veya Ece) neden ilerlemek istediğinizi yazınız."; } catch (e) {}
-        try { if ($w('#developmentText')) $w('#developmentText').text = "Cevabınızı girdikten sonra yapay zekâ yetkinlik analizinizi oluşturacaktır."; } catch (e) {}
+        try { if ($w('#developmentText')) $w('#developmentText').text = "Cevabınızı girdikten sonra yapay zekâ yetkinlik analizinizi otomatik olarak çıkaracaktır."; } catch (e) {}
         try { if ($w('#answerInput')) $w('#answerInput').focus(); } catch (e) {}
         return;
     }
 
-    // 3. Buton durumunu 'Değerlendiriliyor' yap
+    // 4. Buton durumunu 'Değerlendiriliyor' yap
     let aktifButon = null;
     try {
         const b = $w("#avaluateButton") || $w("#evaluateButton");
@@ -114,10 +191,10 @@ async function cevabiDegerlendir() {
 
     // Yükleniyor durumunu alanlara önceden yaz
     try { if ($w('#scoreText')) $w('#scoreText').text = ".."; } catch (e) {}
-    try { if ($w('#strengthsText')) $w('#strengthsText').text = "Yapay zekâ yetkinlik analizini hazırlıyor..."; } catch (e) {}
+    try { if ($w('#strengthsText')) $w('#strengthsText').text = "Yapay zekâ adayın yetkinlik analizini hazırlıyor..."; } catch (e) {}
     try { if ($w('#developmentText')) $w('#developmentText').text = "Pozisyon dinamiklerine göre gelişim önerisi inceleniyor..."; } catch (e) {}
 
-    // 4. Canlı Render Backend'e AI Değerlendirme İsteği Gönder
+    // 5. Canlı Render Backend'e AI Değerlendirme İsteği Gönder
     let degerlendirme = null;
     try {
         const response = await fetch(`${BACKEND_URL}/api/degerlendir`, {
@@ -139,12 +216,12 @@ async function cevabiDegerlendir() {
         console.warn("Backend API bağlantı uyarısı (Yedek analize geçiliyor):", apiErr);
     }
 
-    // 5. API gecikirse veya bağlantı sağlanamazsa devrede olan Akıllı Yerel İK Motoru
+    // 6. API gecikirse veya bağlantı sağlanamazsa devrede olan Akıllı Yerel İK Motoru
     if (!degerlendirme) {
         degerlendirme = akilliYerelDegerlendirme(cevapMetni);
     }
 
-    // 6. SONUÇLARI İLGİLİ ELEMANLARA YAZ:
+    // 7. SONUÇLARI İLGİLİ ELEMANLARA YAZ:
     try {
         if ($w('#scoreText')) {
             $w('#scoreText').text = String(degerlendirme.puan);
@@ -163,7 +240,7 @@ async function cevabiDegerlendir() {
         }
     } catch (e) {}
 
-    // 7. Buton yazısını eski haline getir
+    // 8. Buton yazısını eski haline getir
     if (aktifButon) {
         aktifButon.label = "Gönder ve Değerlendir ✈";
     }
