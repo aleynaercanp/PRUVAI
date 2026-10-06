@@ -1,65 +1,64 @@
-# PRUVAI — Yapay Zekâ Destekli Yetkinlik ve Kariyer Gelişim Platformu (SmartLead AI)
+# PRUVAI — Backend & API Servisi
 
-> *"Yetkinlik beyan edilen değil, gerçek iş senaryoları ve vaka çalışmalarıyla gösterilebilen ve kanıtlanabilen bir değerdir."*
+PRUVAI platformunun yapay zekâ entegrasyonunu, veri yönetimini ve API servislerini sağlayan Flask tabanlı backend projesidir.
 
-**Marka Yöneticisi:** Aleyna ERCAN  
-**Mimari İlke:** Separation of Concerns (Sorumlulukların Ayrılığı)  
-**Teknoloji Yığını:** Python 3 · Flask · SQLite · Groq AI (`qwen/qwen3.8-27b`) · HTML5 / Glassmorphism Vanilla CSS · Wix Studio Velo  
+Ön yüzde Wix Studio kullanılırken, yapay zekâ değerlendirmeleri (Groq Cloud), aday/başvuru kayıtları (SQLite) ve yönetim paneli bu servis üzerinden yürütülür.
 
----
-
-## 🧭 1. Proje Hakkında
-
-**PRUVAI**, yeni mezunların, kariyer değiştirmek isteyenlerin ve çalışan profesyonellerin diplomaya veya klasik mülakat filtrelerine takılmadan, gerçek iş senaryoları çözerek yetkinliklerini kanıtlamalarını sağlayan yapay zekâ destekli bir istihdam ve kariyer platformudur. İşverenler ise role özgü yetkinlik skorlarıyla kanıta dayalı ve sıfır riskli işe alım kararları verir.
-
-Sistem iki temel arayüzden oluşur:
-1. **B2C Karşılama Sayfası (`/`):** Z-Pattern UX dizilimi, Glassmorphism AI sohbet kartı (PRUVAI AI Kariyer Asistanı) ve aday lead formu.
-2. **B2B Yönetim Paneli (`/dashboard`):** F-Pattern UX dizilimi, en önemli kolon (isim) en solda olacak şekilde lead listesi, arama filtresi ve CSV dışa aktarma.
+- **Geliştirici / Proje Sahibi:** Aleyna ERCAN
+- **Teknolojiler:** Python 3, Flask, SQLite, Groq API, HTML/CSS (Jinja2), Wix Studio (Velo)
+- **Canlı Sunucu (Render):** https://pruvai-backend.onrender.com
 
 ---
 
-## 🏛️ 2. Hedef Mimari ve Dosya Hiyerarşisi (Separation of Concerns)
+## Proje Yapısı
 
-Proje, yönergedeki mimari sözleşmeye birebir uygun olarak inşa edilmiştir:
+Kod tabanında modüler bir yapı hedeflendi. Veritabanı sorguları, AI çağrıları ve HTTP yönlendirmeleri birbirinden ayrı modüllerde tutuluyor.
 
 ```text
 PRUVAI/
-├── run.py                 # Sunucuyu başlatan giriş noktası (gunicorn: run:app)
-├── config.py              # Tüm ayarlar, .env okuma, BUSINESS_CONTEXT
-├── test_app.py            # Uçtan uca 7 adımlı sistem doğrulama ve API testleri
-├── requirements.txt       # Bağımlılıklar (Flask, cors, dotenv, requests, gunicorn)
-├── .env                   # Gizli anahtarlar (Git'e eklenmez!)
-├── .env.example           # Ortam değişkenleri şablonu
-├── .gitignore             # Güvenlik ve çöp dosyaları engelleme
-├── wix_velo_integration.js# Wix Studio Velo hazır entegrasyon kodu
+├── run.py                 # Uygulama run dosyası
+├── config.py              # değişkenler, model ayarları ve prompt yapılandırması
+├── test_app.py            # API noktalarını ve veritabanı işlemleri test scripti
+├── requirements.txt       # Bağımlılık listesi
+├── .env.example           # Örnek .env şablonu
+├── .gitignore             # Git takip dışı dosyalar
+├── pruvai.db              # SQLite veritabanı dosyası
 │
 └── app/
-    ├── __init__.py        # Uygulama fabrikası (create_app), CORS, init_db, /health
-    ├── database.py        # SADECE SQLite veri tabanı işlemleri (? parametreli güvenli SQL)
-    ├── routes.py          # HTTP Rotaları (Web & API Blueprint'leri; SQL/AI kodu içermez)
-    ├── templates/
-    │   ├── index.html     # Karşılama sayfası (Z-Pattern, Glassmorphism, Montserrat/Inter)
-    │   └── dashboard.html # Yönetim paneli (F-Pattern, Aday/İşveren takip masası)
-    └── services/
-        ├── __init__.py
-        └── ai_service.py  # SADECE Yapay Zekâ API çağrıları (Groq Llama 3.1 & Demo Modu)
+    ├── __init__.py        # Uygulama Bileşenleri
+    ├── database.py        # SQLite bağlantısı ve Fonksiyonlar
+    ├── routes.py          # Web ve API rotaları
+    ├── services/
+    │   ├── __init__.py
+    │   └── ai_service.py  # Groq API entegrasyonu
+    ├── static/
+    │   └── images/        # Arayüz için statik görseller ve logolar
+    └── templates/
+        ├── index.html     # Bize Ulaşın
+        └── dashboard.html # Yönetim Paneli
 ```
 
-### 🔒 Mimari Sözleşme
-- **`database.py` dışında HİÇBİR yerde SQL kodu yoktur.** SQL Injection'a karşı tüm sorgularda `?` yer tutucusu kullanılmıştır.
-- **`ai_service.py` dışında HİÇBİR yerde yapay zekâ çağrısı yoktur.** Groq API anahtarı girilmediğinde sistem çökmez, güvenli *Demo Modu* döner.
-- **`routes.py` yalnızca yönlendirme yapar.** Kendi içinde SQL veya AI kodu barındırmaz.
+### Tasarım Tercihleri
+- **Veritabanı (`database.py`):** Doğrudan SQLite kullanıldı. SQL Injection riskini engellemek için tüm sorgularda `?` parametreleri tercih edildi. Rotalar veritabanına doğrudan bağlanmaz, bu modüldeki fonksiyonları çağırır.
+- **Yapay Zekâ Servisi (`ai_service.py`):** Groq Cloud API üzerinden `qwen/qwen3.8-27b` modeli kullanılıyor. API anahtarı tanımlı olmadığında veya kota aşıldığında sistemin çökmemesi için otomatik bir yedek yanıt (mock/demo) mekanizması bulunuyor.
+- **Rotalar (`routes.py`):** Sayfa arayüzleri (`web_bp`) ve API istekleri (`api_bp`) iki ayrı Blueprint olarak yönetiliyor.
 
 ---
 
-## 🚀 3. Kurulum ve Çalıştırma
+## Kurulum ve Yerel Çalıştırma
 
-### 1. Depoyu Klonlayın veya Klasöre Geçin
+### Gereksinimler
+- Python 3.9+ 
+- Groq Cloud API anahtarı (canlı AI yanıtları için)
+
+### Adımlar
+
+1. Depoyu klonlayın veya proje klasörüne gidin:
 ```bash
 cd PRUVAI
 ```
 
-### 2. Sanal Ortamı Oluşturun ve Aktive Edin
+2. Sanal ortamı oluşturup aktif edin:
 ```bash
 # Windows
 python -m venv venv
@@ -70,81 +69,79 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Bağımlılıkları Yükleyin
+3. Bağımlılıkları yükleyin:
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. `.env` Dosyasını Yapılandırın
-`.env.example` dosyasını referans alarak `.env` oluşturun:
+4. `.env` dosyasını oluşturun:
+`.env.example` dosyasını kopyalayarak `.env` adıyla kaydedin ve değerleri girin:
 ```env
-GROQ_API_KEY=gsk_sizin_groq_api_anahtariniz
+GROQ_API_KEY=gsk_your_groq_api_key_here
 FLASK_ENV=development
-SECRET_KEY=pruvai_guvenli_anahtar
+SECRET_KEY=local_development_secret_key
 PORT=5000
 DATABASE_PATH=pruvai.db
 ```
 
-### 5. Sunucuyu Başlatın
+5. Sunucuyu başlatın:
 ```bash
 python run.py
 ```
 
-Tarayıcınızda açın:
-* **Karşılama Sayfası:** [http://localhost:5000](http://localhost:5000)
-* **Yönetim Paneli:** [http://localhost:5000/dashboard](http://localhost:5000/dashboard)
-* **Canlılık Kontrolü:** [http://localhost:5000/health](http://localhost:5000/health)
+Uygulama varsayılan olarak `http://localhost:5000` portunda çalışır:
+- **Ana Sayfa:** `http://localhost:5000/`
+- **Yönetim Paneli:** `http://localhost:5000/dashboard`
+- **Health Check:** `http://localhost:5000/health`
 
 ---
 
-## 📡 4. RESTful API Uç Noktaları
+## API Uç Noktaları
 
-| Metot | Yol | Açıklama | Başarılı Yanıt |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/health` | Sunucu sağlık ve model kontrolü | `200 OK` |
-| `GET` | `/` | B2C Karşılama Sayfası | `200 OK` (HTML) |
-| `GET` | `/dashboard` | B2B Yönetim Paneli | `200 OK` (HTML) |
-| `POST` | `/api/sohbet` | PRUVAI AI Kariyer Asistanı'na soru iletme | `200 OK` `{"basari": true, "cevap": "..."}` |
-| `POST` | `/api/leads` | Yeni lead / aday başvurusu kaydetme | `201 Created` `{"basari": true, "id": 1}` |
-| `GET` | `/api/leads` | Tüm kayıtlı aday ve işverenleri listeleme | `200 OK` `{"basari": true, "leadler": [...]}` |
-
----
-
-## 🎨 5. Wix Studio Entegrasyonu
-
-Wix Studio üzerindeki siteniz (`https://aleynaercanp.wixstudio.com/pruvai`) için hazır Velo kodu [`wix_velo_integration.js`](file:///c:/Users/fatih/OneDrive/Masaüstü/PRUVAI/wix_velo_integration.js) dosyasına yerleştirilmiştir.
-Backend servisini Render'a canlıya aldıktan sonra tek yapmanız gereken, Wix Velo kodundaki `API_BASE_URL` adresini Render bağlantınız ile güncellemektir.
+| Metot | Uç Nokta | Açıklama | Beklenen Body / Parametre | Örnek Yanıt |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/health` | Servis canlılık kontrolü | - | `{"durum": "aktif", "model": "..."}` |
+| `GET` | `/` | Web tanıtım sayfası | - | HTML |
+| `GET` | `/dashboard` | Yönetim paneli | - | HTML |
+| `POST` | `/api/sohbet` | AI Kariyer Asistanı soru-cevap | `{"mesaj": "...", "gecmis": []}` | `{"basari": true, "cevap": "..."}` |
+| `POST` | `/api/degerlendir` | S3 vaka değerlendirme ve skorlama | `{"cevap": "...", "senaryo": "..."}` | `{"basari": true, "puan": 85, ...}` |
+| `POST` | `/api/leads` | İletişim / başvuru formu kaydı | `{"fullName": "...", "email": "...", ...}` | `{"basari": true, "id": 1}` |
+| `GET` | `/api/leads` | Kayıtlı başvuruları listeleme | - | `{"basari": true, "leadler": [...]}` |
+| `DELETE`| `/api/leads/<id>` | Başvuru kaydı silme | URL parametresi `id` | `{"basari": true}` |
 
 ---
 
-## 🧪 6. Otomatik Sistem ve API Doğrulama Testi (`test_app.py`)
+## Wix Studio Entegrasyonu
 
-Projenin tüm uç noktalarını, veritabanı CRUD işlemlerini ve Groq canlı yapay zekâ sohbetini tek seferde doğrulamak için:
+Wix Studio tarafındaki frontend, bu backend ile standart HTTPS REST çağrıları (`wix-fetch`) üzerinden haberleşir.
+
+- Canlı API Base URL: `https://pruvai-backend.onrender.com`
+- Sohbet bileşenleri `/api/sohbet` uç noktasına istek atar.
+- Aday vaka değerlendirmeleri `/api/degerlendir` uç noktasından puan ve geri bildirim alır.
+- İletişim ve aday başvuru formları verileri eş zamanlı olarak hem Wix CMS'e hem de `/api/leads` üzerinden bu backend veritabanına iletir.
+
+---
+
+## Testler
+
+API rotalarını, veritabanı okuma/yazma işlevlerini ve canlı model bağlantısını doğrulamak için `test_app.py` scripti kullanılır:
 
 ```bash
 python test_app.py
 ```
 
-Bu test senaryosu 7 kritik adımı otomatik olarak inceler ve onaylar:
-1. **Config Testi:** Groq API anahtarının ve ortam değişkenlerinin varlığı.
-2. **Nabız Testi (`/health`):** Sunucu canlılığı (`200 OK`).
-3. **Karşılama Sayfası (`GET /`):** Landing page şablonunun başarıyla render edilmesi.
-4. **Yönetim Paneli (`GET /dashboard`):** Admin ekranının başarıyla render edilmesi.
-5. **Lead Ekleme (`POST /api/leads`):** SQLite veritabanına güvenli kayıt (`201 Created`).
-6. **Lead Listeleme (`GET /api/leads`):** Veritabanından kayıtların çekilmesi (`200 OK`).
-7. **Canlı AI Sohbeti (`POST /api/sohbet`):** Groq `qwen/qwen3.8-27b` modeliyle canlı soru-cevap.
+Test scripti sırasıyla config yüklemesini, `/health` yanıtını, template render durumlarını, SQLite CRUD işlemlerini ve Groq API sohbet akışını kontrol eder.
 
 ---
 
-## ☁️ 7. Render Canlı Yayına Alma (Deploy)
+## Dağıtım (Deployment)
 
-1. Projeyi GitHub'a yükleyin (`.env` dosyasının `.gitignore` sayesinde yüklenmediğinden emin olun).
-2. [render.com](https://render.com) üzerinde **New Web Service** seçin ve GitHub deponuzu bağlayın.
-3. Ayarları yapın:
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn run:app`
-4. **Environment Variables** bölümüne ekleyin:
-   - `GROQ_API_KEY`: `gsk_...`
-   - `FLASK_ENV`: `production`
-   - `SECRET_KEY`: `pruvai_guvenli_anahtar`
-5. Servis dağıtıldıktan sonra `https://projeniz.onrender.com/health` adresinde `"durum": "aktif"` yanıtını aldığınızda sisteminiz tüm dünyaya açıktır!
+Proje Render üzerinde Web Service olarak barındırılmaktadır:
+
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `gunicorn run:app`
+- **Environment Variables:**
+  - `GROQ_API_KEY`: Groq API anahtarınız
+  - `FLASK_ENV`: `production`
+  - `SECRET_KEY`: Güvenli rastgele bir string
+  - `PYTHON_VERSION`: `3.10.x` veya üstü
