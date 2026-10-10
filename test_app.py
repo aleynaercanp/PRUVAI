@@ -85,8 +85,26 @@ def run_tests():
     assert res_ai.status_code == 200, f"AI Sohbet isteği başarısız oldu! {ai_data}"
     assert ai_data.get('basari') is True, "AI yanıtı başarı false döndü!"
 
+    # 9. Yönetici güvenli giriş testi (POST /api/admin/login)
+    print("\n[TEST 8] Yönetici Güvenli Giriş (/api/admin/login) Testi Başlatılıyor...")
+    # Doğru giriş testi
+    res_auth_ok = client.post('/api/admin/login', json={"email": "admin@pruvai.com", "password": "pruvaiadmin2026"})
+    print(f"Doğru Giriş -> Durum: {res_auth_ok.status_code}, Yanıt: {res_auth_ok.get_json()}")
+    assert res_auth_ok.status_code == 200, "Doğru yönetici girişi 200 dönmeli!"
+    assert res_auth_ok.get_json().get('basari') is True, "Doğru girişte basari=True olmalı!"
+
+    # Yanlış şifre testi
+    res_auth_fail = client.post('/api/admin/login', json={"email": "admin@pruvai.com", "password": "yanlis_sifre"})
+    print(f"Yanlış Giriş -> Durum: {res_auth_fail.status_code}, Yanıt: {res_auth_fail.get_json()}")
+    assert res_auth_fail.status_code == 401, "Yanlış girişte 401 dönmeli!"
+    assert res_auth_fail.get_json().get('basari') is False, "Yanlış girişte basari=False olmalı!"
+
+    # Boş alan testi
+    res_auth_empty = client.post('/api/admin/login', json={"email": "", "password": ""})
+    assert res_auth_empty.status_code == 400, "Boş bilgide 400 dönmeli!"
+
     print("=" * 60)
-    print("[OK] TÜM SİSTEM TESTLERİ BAŞARIYLA GEÇTİ!")
+    print("[OK] TÜM SİSTEM VE GÜVENLİK TESTLERİ BAŞARIYLA GEÇTİ!")
     print("=" * 60)
 
 

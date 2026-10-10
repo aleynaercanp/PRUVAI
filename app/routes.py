@@ -3,6 +3,7 @@ Uygulama rotaları ve API uç noktaları.
 Arayüz sayfalarını ve gelen HTTP isteklerini karşılayıp ilgili servislere yönlendirir.
 """
 
+import os
 from flask import Blueprint, request, jsonify, render_template
 from app.services.ai_service import ai_service, AIServiceError
 from app.database import lead_ekle, tum_leadler, lead_sil
@@ -201,3 +202,37 @@ def api_lead_sil(lead_id):
             "hata": "Kayıt silinirken bir sunucu hatası oluştu.",
             "detay": str(err)
         }), 500
+
+
+@api_bp.route('/admin/login', methods=['POST'])
+def api_admin_login():
+    """
+    Yönetici giriş doğrulaması.
+    Hassas giriş bilgileri tarayıcıda doğrudan görünmesin diye
+    doğrulama güvenli şekilde sunucu tarafında yapılır.
+    """
+    veri = request.get_json(silent=True) or {}
+    email = str(veri.get('email') or veri.get('eposta') or '').strip().lower()
+    password = str(veri.get('password') or veri.get('sifre') or '').strip()
+
+    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@pruvai.com').strip().lower()
+    admin_password = os.environ.get('ADMIN_PASSWORD', 'pruvaiadmin2026').strip()
+
+    if not email or not password:
+        return jsonify({
+            "basari": False,
+            "hata": "Lütfen e-posta ve şifrenizi girin."
+        }), 400
+
+    if email == admin_email and password == admin_password:
+        return jsonify({
+            "basari": True,
+            "mesaj": "Giriş başarılı.",
+            "token": "pruvai_admin_secure_session"
+        }), 200
+    else:
+        return jsonify({
+            "basari": False,
+            "hata": "Hatalı e-posta veya şifre!"
+        }), 401
+
